@@ -1,5 +1,40 @@
 #include <Windows.h>
 #include <cstdint>
+#include <string>
+#include <format>
+
+std::wstring ConvertString(const std::string& str) {
+	if (str.empty()) {
+		return std::wstring();
+	}
+
+	auto sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, reinterpret_cast<const char*>(&str[0]), static_cast<int>(str.size()), NULL, 0);
+	if (sizeNeeded == 0) {
+		return std::wstring();
+	}
+	std::wstring result(sizeNeeded, 0);
+	MultiByteToWideChar(CP_UTF8, 0, reinterpret_cast<const char*>(&str[0]), static_cast<int>(str.size()), &result[0], sizeNeeded);
+	return result;
+}
+
+std::string ConvertString(const std::wstring& str) {
+	if (str.empty()) {
+		return std::string();
+	}
+
+	auto sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), NULL, 0, NULL, NULL);
+	if (sizeNeeded == 0) {
+		return std::string();
+	}
+	std::string result(sizeNeeded, 0);
+	WideCharToMultiByte(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), result.data(), sizeNeeded, NULL, NULL);
+	return result;
+}
+
+void Log(const std::string& message)
+{
+	OutputDebugStringA(message.c_str());
+}
 
 // ウィンドウプロシージャ
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -15,9 +50,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 	return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
-
-int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) 
-{
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	WNDCLASS wc{};
 
 	wc.lpfnWndProc = WindowProc;
@@ -29,7 +62,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
 
 	RegisterClass(&wc);
-
 
 	// クライアントの領域サイズ
 	const int32_t kClientWidth = 1280;
@@ -43,20 +75,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 	// ウィンドウの生成
 	HWND hwnd = CreateWindow(
-		wc.lpszClassName,			// 利用するクラス名
-		L"CG2",						// タイトルバーの文字
-		WS_OVERLAPPEDWINDOW, // よく見るウィンドウスタイル
-		CW_USEDEFAULT, // 表示X座標
-		CW_USEDEFAULT, // 表示Y座標
-		wrc.right - wrc.left, // ウィンドウ横幅
-		wrc.bottom - wrc.top, // ウィンドウ縦幅
-		nullptr,// 親ウィンドウハンドル 
-		nullptr,// メニューハンドル
-		wc.hInstance, // インスタンスハンドル
-		nullptr); // オプション
+	    wc.lpszClassName,     // 利用するクラス名
+	    L"CG2",               // タイトルバーの文字
+	    WS_OVERLAPPEDWINDOW,  // よく見るウィンドウスタイル
+	    CW_USEDEFAULT,        // 表示X座標
+	    CW_USEDEFAULT,        // 表示Y座標
+	    wrc.right - wrc.left, // ウィンドウ横幅
+	    wrc.bottom - wrc.top, // ウィンドウ縦幅
+	    nullptr,              // 親ウィンドウハンドル
+	    nullptr,              // メニューハンドル
+	    wc.hInstance,         // インスタンスハンドル
+	    nullptr               // オプション
+	);
 
 	// ウィンドウを表示する
 	ShowWindow(hwnd, SW_SHOW);
+	Log("HelloDirectX!!!\n");
+	Log(ConvertString(std::format(L"WindowSize : {},{}\n", kClientWidth, kClientHeight)));
 
 	MSG msg{};
 	// ウィンドウの×ボタンが押されるまでループ
@@ -66,11 +101,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} else {
-		
 		}
 	}
 
-	return 0; 
+	return 0;
 }
-
 
