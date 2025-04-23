@@ -211,18 +211,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// コマンドキューの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
 
-
-	MSG msg{};
-	// ウィンドウの×ボタンが押されるまでループ
-	while (msg.message != WM_QUIT) {
-		// Windowにメッセージが着てたら最優先で処理される
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		} else {
-		}
-	}
-
 	// ===============================
 	// 命令保存用のメモリ管理機構
 	// ===============================
@@ -236,6 +224,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, nullptr, IID_PPV_ARGS(&commandList));
 	// コマンドリストの生成がうまくいかなかったので起動できない
 	assert(SUCCEEDED(hr));
+
+
+	MSG msg{};
+	// ウィンドウの×ボタンが押されるまでループ
+	while (msg.message != WM_QUIT) {
+		// Windowにメッセージが着てたら最優先で処理される
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		} else {
+		}
+	}
+
+
 
 
 
