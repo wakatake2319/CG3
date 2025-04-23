@@ -1,21 +1,46 @@
 #include <Windows.h>
 #include <cstdint>
-#include <string>
 #include <format>
+#include <string>
 // ↓ファイルを作る
 // ファイルやディレクトリに関する操作を行うライブラリ
 #include <filesystem>
 // ファイルに書いたり読んだりするライブラリ
 #include <fstream>
 // 時間を扱うライブラリ
+#include <cassert>
 #include <chrono>
 #include <d3d12.h>
 #include <dxgi1_6.h>
-#include <cassert>
-
+// デバッグ用
+#include <dbghelp.h>
+#include <strsafe.h>
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
+// デバッグ用
+#pragma comment(lib, "Dbghelp.lib")
+
+static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception) {
+	SYSTEMTIME time;
+	GetLocalTime(&time);
+	wchar_t filePath[MAX_PATH] = {0};
+	CreateDirectory(L"./Dumps", nullptr);
+	StringCchPrintfW(filePath, MAX_PATH, L"./Dumps/%04d-%02d%02d-%02d%02d.dmp", time.wYear, time.wMonth, time.wHour, time.wMinute);
+	HANDLE dumpFileHandle = CreateFile(filePath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
+
+	DWORD processId = GetCurrentProcessId();
+	DWORD threadId = GetCurrentThreadId();
+
+	MINIDUMP_EXCEPTION_INFORMATION minidumpInformation{0};
+	minidumpInformation.ThreadId = threadId;
+	minidumpInformation.ExceptionPointers = exception;
+	minidumpInformation.ClientPointers = TRUE;
+
+	MiniDumpWriteDump(GetCurrentProcess(), processId, dumpFileHandle, MiniDumpNormal, &minidumpInformation, nullptr, nullptr);
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
 
 std::wstring ConvertString(const std::string& str) {
 	if (str.empty()) {
@@ -45,12 +70,9 @@ std::string ConvertString(const std::wstring& str) {
 	return result;
 }
 
-void Log(const std::string& message)
-{
-	OutputDebugStringA(message.c_str());
-}
+void Log(const std::string& message) { OutputDebugStringA(message.c_str()); }
 
-void Log(std::ostream& os, const std::string& message) { 
+void Log(std::ostream& os, const std::string& message) {
 	os << message << std ::endl;
 	OutputDebugStringA(message.c_str());
 }
@@ -71,6 +93,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
+	// 誰も補足しなかった場合に補足するための関数
+	SetUnhandledExceptionFilter(ExportDump);
+
 	// ↓ファイルを作る
 	// ログのディレクトリを用意
 	std::filesystem::create_directory("logs");
@@ -79,8 +104,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
 
 	// ログファイルの名前にコンマ何秒入らないので、削って秒にする
-	std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> 
-		nowSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> nowSeconds = std::chrono::time_point_cast<std::chrono::seconds>(now);
 
 	// 日本時間(PCの設定時間)に変換
 	std::chrono::zoned_time localTime{std::chrono::current_zone(), nowSeconds};
@@ -93,7 +117,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ファイルを使って書き込み準備
 	std::ofstream logStream(logFilePath);
-
 
 	WNDCLASS wc{};
 
@@ -134,8 +157,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ウィンドウを表示する
 	ShowWindow(hwnd, SW_SHOW);
-	Log(logStream,"HelloDirectX!!!\n");
-	Log(logStream,ConvertString(std::format(L"WindowSize : {},{}\n", kClientWidth, kClientHeight)));
+	Log(logStream, "HelloDirectX!!!\n");
+	Log(logStream, ConvertString(std::format(L"WindowSize : {},{}\n", kClientWidth, kClientHeight)));
 
 	// DXGIファクトリーの生成
 	IDXGIFactory7* dxgiFactory = nullptr;
@@ -146,6 +169,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// 使用するアダプタ用の変数。最初にnullptrを入れておく
 	IDXGIAdapter4* useAdapter = nullptr;
+
 	// 良い順にアダプタを頼む
 	for (UINT i = 0; dxgiFactory->EnumAdapterByGpuPreference(i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&useAdapter)) != DXGI_ERROR_NOT_FOUND; ++i) {
 		// アダプターの情報を取得する
@@ -154,10 +178,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// 初期化の根本的な部分でエラーが出た場合はプログラムが間違っているか、どうにもできない場合が多いのでassertにしておく
 		assert(SUCCEEDED(hr));
 		// ソフトウェアアダプタでなければ採用
-		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE))
-		{
+		if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG3_SOFTWARE)) {
 			// 採用したアダプタの情報をログに出力。wstringのほうなので注意
-			Log(logStream,ConvertString(std::format(L"Use Adapater:{}\n", adapterDesc.Description)));
+			Log(logStream, ConvertString(std::format(L"Use Adapater:{}\n", adapterDesc.Description)));
 			break;
 		}
 		// ソフトウェアアダプタの場合は見なかったことにする
@@ -171,20 +194,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0};
 	const char* featureLevelStrings[] = {"12.2", "12.1", "12.0"};
 	// 高い順に生成ができるか試していく
-	for (size_t i = 0; i < _countof(featureLevels); ++i) 
-	{
+	for (size_t i = 0; i < _countof(featureLevels); ++i) {
 		hr = D3D12CreateDevice(useAdapter, featureLevels[i], IID_PPV_ARGS(&device));
 		if (SUCCEEDED(hr)) {
 			Log(std::format("featureLevel : {}\n", featureLevelStrings[i]));
 			break;
 		}
-
 	}
 	assert(device != nullptr);
-	Log(logStream, ConvertString (L"Complete create D3D12Device!!!\n"));
+	Log(logStream, ConvertString(L"Complete create D3D12Device!!!\n"));
 
-
-
+	// コマンドキューを生成する
+	ID3D12CommandQueue* commandQueue = nullptr;
+	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
+	hr = device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&commandQueue));
+	// コマンドキューの生成がうまくいかなかったので起動できない
+	assert(SUCCEEDED(hr));
 
 
 	MSG msg{};
@@ -198,6 +223,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 	}
 
+	// ===============================
+	// 命令保存用のメモリ管理機構
+	// ===============================
+	// コマンドアロケータを生成する
+	ID3D12CommandAllocator* commandAllocator = nullptr;
+	hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
+	// コマンドアロケータの生成がうまくいかなかったので起動できない
+	assert(SUCCEEDED(hr));
+	// コマンドリストを生成する
+	ID3D12GraphicsCommandList* commandList = nullptr;
+	hr = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator, nullptr, IID_PPV_ARGS(&commandList));
+	// コマンドリストの生成がうまくいかなかったので起動できない
+	assert(SUCCEEDED(hr));
+
+
+
+
+
+
+
 	return 0;
 }
-
