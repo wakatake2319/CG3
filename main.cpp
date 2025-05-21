@@ -20,6 +20,7 @@
 // DXC
 #include <dxcapi.h>
 
+
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 // デバッグ用
@@ -32,6 +33,9 @@
 struct Vector4 {
 	float x, y, z, w;
 };
+struct Vector3 {
+	float x, y, z;
+};
 
 struct VertexData {
 	Vector4 position;
@@ -42,6 +46,24 @@ struct Matrix4x4 {
 	float m[4][4];
 };
 
+struct Transform {
+	Vector3 scale;
+	Vector3 rotate;
+	Vector3 scaletranslate;
+};
+
+Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
+	Matrix4x4 result{};
+	for (int row = 0; row < 4; ++row) {
+		for (int col = 0; col < 4; ++col) {
+			result.m[row][col] = 0;
+			for (int k = 0; k < 4; ++k) {
+				result.m[row][col] += m1.m[row][k] * m2.m[k][col];
+			}
+		}
+	}
+	return result;
+}
 
 static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception) {
 	SYSTEMTIME time;
