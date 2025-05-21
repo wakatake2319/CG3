@@ -19,7 +19,9 @@
 #include <dxgidebug.h>
 // DXC
 #include <dxcapi.h>
-#include "Math.h"
+//#include "Math.h"
+#include "MathTypes.h"
+
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -33,18 +35,12 @@
 struct Vector4 {
 	float x, y, z, w;
 };
-struct Vector3 {
-	float x, y, z;
-};
 
 struct VertexData {
 	Vector4 position;
 	Vector4 color;
 };
 
-struct Matrix4x4 {
-	float m[4][4];
-};
 
 
 
@@ -280,6 +276,114 @@ Matrix4x4 MakeIdentity4x4() {
 	return result;
 }
 
+
+
+// アフィン変換行列の作成
+Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rot, const Vector3& translate) {
+
+	Matrix4x4 result{};
+
+	Matrix4x4 scaleMatrix{};
+	scaleMatrix.m[0][0] = scale.x;
+	scaleMatrix.m[0][1] = 0;
+	scaleMatrix.m[0][2] = 0;
+	scaleMatrix.m[0][3] = 0;
+	scaleMatrix.m[1][0] = 0;
+	scaleMatrix.m[1][1] = scale.y;
+	scaleMatrix.m[1][2] = 0;
+	scaleMatrix.m[1][3] = 0;
+	scaleMatrix.m[2][0] = 0;
+	scaleMatrix.m[2][1] = 0;
+	scaleMatrix.m[2][2] = scale.z;
+	scaleMatrix.m[2][3] = 0;
+	scaleMatrix.m[3][0] = 0;
+	scaleMatrix.m[3][1] = 0;
+	scaleMatrix.m[3][2] = 0;
+	scaleMatrix.m[3][3] = 1;
+
+	// X軸回転行列
+	Matrix4x4 rotateMatrixX = {};
+	rotateMatrixX.m[0][0] = 1.0f;
+	rotateMatrixX.m[0][1] = 0.0f;
+	rotateMatrixX.m[0][2] = 0.0f;
+	rotateMatrixX.m[0][3] = 0.0f;
+	rotateMatrixX.m[1][0] = 0.0f;
+	rotateMatrixX.m[1][1] = std::cos(rot.x);
+	rotateMatrixX.m[1][2] = std::sin(rot.x);
+	rotateMatrixX.m[1][3] = 0.0f;
+	rotateMatrixX.m[2][0] = 0.0f;
+	rotateMatrixX.m[2][1] = -std::sin(rot.x);
+	rotateMatrixX.m[2][2] = std::cos(rot.x);
+	rotateMatrixX.m[2][3] = 0.0f;
+	rotateMatrixX.m[3][0] = 0.0f;
+	rotateMatrixX.m[3][1] = 0.0f;
+	rotateMatrixX.m[3][2] = 0.0f;
+	rotateMatrixX.m[3][3] = 1.0f;
+
+	// Y軸回転行列
+	Matrix4x4 rotateMatrixY = {};
+	rotateMatrixY.m[0][0] = std::cos(rot.y);
+	rotateMatrixY.m[0][1] = 0.0f;
+	rotateMatrixY.m[0][2] = -std::sin(rot.y);
+	rotateMatrixY.m[0][3] = 0.0f;
+	rotateMatrixY.m[1][0] = 0.0f;
+	rotateMatrixY.m[1][1] = 1.0f;
+	rotateMatrixY.m[1][2] = 0.0f;
+	rotateMatrixY.m[1][3] = 0.0f;
+	rotateMatrixY.m[2][0] = std::sin(rot.y);
+	rotateMatrixY.m[2][1] = 0.0f;
+	rotateMatrixY.m[2][2] = std::cos(rot.y);
+	rotateMatrixY.m[2][3] = 0.0f;
+	rotateMatrixY.m[3][0] = 0.0f;
+	rotateMatrixY.m[3][1] = 0.0f;
+	rotateMatrixY.m[3][2] = 0.0f;
+	rotateMatrixY.m[3][3] = 1.0f;
+
+	// Z軸回転行列
+	Matrix4x4 rotateMatrixZ = {};
+	rotateMatrixZ.m[0][0] = std::cos(rot.z);
+	rotateMatrixZ.m[0][1] = std::sin(rot.z);
+	rotateMatrixZ.m[0][2] = 0.0f;
+	rotateMatrixZ.m[0][3] = 0.0f;
+	rotateMatrixZ.m[1][0] = -std::sin(rot.z);
+	rotateMatrixZ.m[1][1] = std::cos(rot.z);
+	rotateMatrixZ.m[1][2] = 0.0f;
+	rotateMatrixZ.m[1][3] = 0.0f;
+	rotateMatrixZ.m[2][0] = 0.0f;
+	rotateMatrixZ.m[2][1] = 0.0f;
+	rotateMatrixZ.m[2][2] = 1.0f;
+	rotateMatrixZ.m[2][3] = 0.0f;
+	rotateMatrixZ.m[3][0] = 0.0f;
+	rotateMatrixZ.m[3][1] = 0.0f;
+	rotateMatrixZ.m[3][2] = 0.0f;
+	rotateMatrixZ.m[3][3] = 1.0f;
+
+	// X、Y、Z軸回転行列の合成（Z→Y→X）
+	Matrix4x4 rotateMatrixXYZ = {};
+	rotateMatrixXYZ = Multiply(rotateMatrixX, Multiply(rotateMatrixY, rotateMatrixZ));
+
+	Matrix4x4 translateMatrix = {};
+	translateMatrix.m[0][0] = 1;
+	translateMatrix.m[0][1] = 0;
+	translateMatrix.m[0][2] = 0;
+	translateMatrix.m[0][3] = 0;
+	translateMatrix.m[1][0] = 0;
+	translateMatrix.m[1][1] = 1;
+	translateMatrix.m[1][2] = 0;
+	translateMatrix.m[1][3] = 0;
+	translateMatrix.m[2][0] = 0;
+	translateMatrix.m[2][1] = 0;
+	translateMatrix.m[2][2] = 1;
+	translateMatrix.m[2][3] = 0;
+	translateMatrix.m[3][0] = translate.x;
+	translateMatrix.m[3][1] = translate.y;
+	translateMatrix.m[3][2] = translate.z;
+	translateMatrix.m[3][3] = 1;
+
+	result = Multiply(scaleMatrix, Multiply(rotateMatrixXYZ, translateMatrix));
+
+	return result;
+}
 
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -537,7 +641,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 	// Mathインスタンスの初期化
-	Math* math = new Math();
+	//Math* math = new Math();
 
 
 
@@ -750,7 +854,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 			transform.rotate.y += 0.03f;
-			math->Updata();
+			Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
 			*wvpData = worldMatrix;
 
 			// ゲーム処理
