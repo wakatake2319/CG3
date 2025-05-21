@@ -19,7 +19,7 @@
 #include <dxgidebug.h>
 // DXC
 #include <dxcapi.h>
-
+#include "Math.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -46,11 +46,7 @@ struct Matrix4x4 {
 	float m[4][4];
 };
 
-struct Transform {
-	Vector3 scale;
-	Vector3 rotate;
-	Vector3 scaletranslate;
-};
+
 
 Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
 	Matrix4x4 result{};
@@ -539,6 +535,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	hr = dxcUtils->CreateDefaultIncludeHandler(&includeHandler);
 	assert(SUCCEEDED(hr));
 
+
+	// Mathインスタンスの初期化
+	Math* math = new Math();
+
+
+
+
+
 	// ====================================
 	// RootSignature作成
 	// ====================================
@@ -556,7 +560,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// CBVを使う
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	// PixelShaderで使う
-	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	// レジスタ番号0とバインド
 	rootParameters[1].Descriptor.ShaderRegister = 0;
 	// ルートパラメータ配列へのポインタ
@@ -722,7 +726,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	scissorRect.top = 0;
 	scissorRect.bottom = kClientHeight;
 
-
+	// transformの変数を作る
+	Transform transform{
+	    {1.0f, 1.0f, 1.0f},
+        {0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f}
+    };
+	
+	
 
 	// ==============================
 	// ゲームループ
@@ -735,6 +746,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} else {
+
+
+
+			transform.rotate.y += 0.03f;
+			math->Updata();
+			*wvpData = worldMatrix;
+
 			// ゲーム処理
 
 			// ================================
