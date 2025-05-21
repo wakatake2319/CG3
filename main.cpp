@@ -29,6 +29,9 @@
 // DXC
 #pragma comment(lib, "dxcompiler.lib")
 
+
+
+// create
 struct Vector4 {
 	float x, y, z, w;
 };
@@ -779,6 +782,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	pixelShaderBlob->Release();
 	vertexShaderBlob->Release();
 	materialResource->Release();
+	dxcCompiler->Release();
 #ifdef _DEBUG
 	debugController->Release();
 #endif
