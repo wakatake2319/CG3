@@ -19,9 +19,8 @@
 #include <dxgidebug.h>
 // DXC
 #include <dxcapi.h>
-//#include "Math.h"
+// #include "Math.h"
 #include "MathTypes.h"
-
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -40,9 +39,6 @@ struct VertexData {
 	Vector4 position;
 	Vector4 color;
 };
-
-
-
 
 Matrix4x4 Multiply(const Matrix4x4& m1, const Matrix4x4& m2) {
 	Matrix4x4 result{};
@@ -198,7 +194,7 @@ IDxcBlob* CompileShader(
 		// 警告・エラーだめ絶対
 		assert(false);
 	}
-	
+
 	// ==================================
 	// Compile結果を受け取って返す
 	// ==================================
@@ -215,15 +211,11 @@ IDxcBlob* CompileShader(
 	return shaderBlob;
 }
 
-
-
-
 // ====================================
 // Resource作成の関数化
 // ====================================
 
-ID3D12Resource* CreateBufferResource(ID3D12Device* device, size_t sizeInBytes)
-{ 
+ID3D12Resource* CreateBufferResource(ID3D12Device* device, size_t sizeInBytes) {
 
 	// 頂点リソース用のヒープの設定
 	D3D12_HEAP_PROPERTIES uploadHeapProperties{};
@@ -249,8 +241,6 @@ ID3D12Resource* CreateBufferResource(ID3D12Device* device, size_t sizeInBytes)
 	return vertexResource;
 }
 
-
-
 // 単位行列の作成
 Matrix4x4 MakeIdentity4x4() {
 
@@ -275,8 +265,6 @@ Matrix4x4 MakeIdentity4x4() {
 
 	return result;
 }
-
-
 
 // アフィン変換行列の作成
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rot, const Vector3& translate) {
@@ -384,7 +372,6 @@ Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rot, const Vecto
 
 	return result;
 }
-
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -639,13 +626,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	hr = dxcUtils->CreateDefaultIncludeHandler(&includeHandler);
 	assert(SUCCEEDED(hr));
 
-
 	// Mathインスタンスの初期化
-	//Math* math = new Math();
-
-
-
-
+	// Math* math = new Math();
 
 	// ====================================
 	// RootSignature作成
@@ -660,7 +642,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// PixelShaderで使う
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	// レジスタ番号0とバインド
-	rootParameters[0].Descriptor.ShaderRegister = 0; 
+	rootParameters[0].Descriptor.ShaderRegister = 0;
 	// CBVを使う
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	// PixelShaderで使う
@@ -672,7 +654,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 配列の長さ
 	descriptionRootSignature.NumParameters = _countof(rootParameters);
 
-
 	// マテリアル用のリソース
 	ID3D12Resource* materialResource = CreateBufferResource(device, sizeof(Vector4));
 
@@ -682,7 +663,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	*materialData = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
 
-
 	// WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
 	ID3D12Resource* wvpResource = CreateBufferResource(device, sizeof(Matrix4x4));
 	// データを書き込む
@@ -691,7 +671,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&wvpData));
 	// 単位行列を書き込んでおく
 	*wvpData = MakeIdentity4x4();
-
 
 	// シリアライズしてバイナリにする
 	ID3DBlob* signatureBlob = nullptr;
@@ -805,7 +784,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 左下
 	vertexData[0] = {-0.5f, -0.5f, 0.0f, 1.0f};
 	// 上
-	vertexData[1] = { 0.0f, 0.5f, 0.0f, 1.0f};
+	vertexData[1] = {0.0f, 0.5f, 0.0f, 1.0f};
 	// 右下
 	vertexData[2] = {0.5f, -0.5f, 0.0f, 1.0f};
 
@@ -836,8 +815,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         {0.0f, 0.0f, 0.0f},
         {0.0f, 0.0f, 0.0f}
     };
-	
-	
 
 	// ==============================
 	// ゲームループ
@@ -850,8 +827,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} else {
-
-
 
 			transform.rotate.y += 0.03f;
 			Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
@@ -894,8 +869,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			// Scirssorを設定
 			commandList->RSSetScissorRects(1, &scissorRect);
 			// RootSignatureを設定。PSOに設定しているけど別途設定が必要
-			commandList
-			    ->SetGraphicsRootSignature(rootSignature);
+			commandList->SetGraphicsRootSignature(rootSignature);
 			// PSOを設定
 			commandList->SetPipelineState(graphicsPipelineState);
 			// VBVを設定
@@ -909,8 +883,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			// 描画。(DrawCall/ドローコール)。3頂点で1つのインスタンス
 			commandList->DrawInstanced(3, 1, 0, 0);
-
-
 
 			// 画面に描く処理はすべて終わり、画面に映すので、状態を遷移
 			// 今回はRenderTargetからPresentにする
