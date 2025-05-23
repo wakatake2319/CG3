@@ -733,6 +733,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, static_cast<float>(kwindowWidth), static_cast<float>(kwindowHeight), 0.0f, 1.0f);
 			*wvpData = worldMatrix;
 
+
+
 			// ゲーム処理
 
 			// 開発用のUIの処理。実際に開発用のUIを出す場合はここをゲーム固有の処理に置き換える
