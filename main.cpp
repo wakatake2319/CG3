@@ -18,16 +18,14 @@
 // リソースリークチェック
 #include <dxgidebug.h>
 // DXC
-#include <dxcapi.h>
 #include "Math.h"
 #include "MathTypes.h"
+#include <dxcapi.h>
 // imguiの外部宣言
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_dx12.h"
 #include "externals/imgui/imgui_impl_win32.h"
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -46,8 +44,6 @@ struct VertexData {
 	Vector4 position;
 	Vector4 color;
 };
-
-
 
 static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception) {
 	SYSTEMTIME time;
@@ -254,10 +250,6 @@ ID3D12DescriptorHeap* CreateDescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTO
 	assert(SUCCEEDED(hr));
 	return descriptorHeap;
 }
-
-
-
-
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -690,8 +682,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	scissorRect.top = 0;
 	scissorRect.bottom = kClientHeight;
 
-
-
 	Vector3 cameraPosition{0.0f, 0.0f, 0.0f};
 	int kwindowWidth = 1280;
 	int kwindowHeight = 720;
@@ -703,8 +693,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         {0.0f, 0.0f, 0.0f}
     };
 	Transform cameraTransform{
-	    {1.0f, 1.0f, 1.0f},
-        {0.0f, 0.0f, 0.0f},
+	    {1.0f, 1.0f, 1.0f },
+        {0.0f, 0.0f, 0.0f },
         {0.0f, 0.0f, -5.0f}
     };
 
@@ -713,9 +703,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ImGui::CreateContext();
 	ImGui::StyleColorsDark();
 	ImGui_ImplWin32_Init(hwnd);
-	ImGui_ImplDX12_Init(device, swapChainDesc.BufferCount, rtvDesc.Format, srvDescriptorHeap, srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-
-
+	ImGui_ImplDX12_Init(
+	    device, swapChainDesc.BufferCount, rtvDesc.Format, srvDescriptorHeap, srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
 	// ==============================
 	// ゲームループ
@@ -728,7 +717,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		} else {
-
 
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplWin32_NewFrame();
@@ -787,7 +775,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			// 描画用のDescriptorHeap
 			commandList->SetDescriptorHeaps(1, descriptorHeaps);
 
-
 			// =====================
 			// 描画
 			// =====================
@@ -810,7 +797,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			// 描画。(DrawCall/ドローコール)。3頂点で1つのインスタンス
 			commandList->DrawInstanced(3, 1, 0, 0);
-
 
 			// 実際のcommandListのImGuiの描画コマンドを積む
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
@@ -860,7 +846,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	CloseHandle(fenceEvent);
 	fence->Release();
 	rtvDescriptorHeap->Release();
-	srvDescriptorHeap->Release(); 
+	srvDescriptorHeap->Release();
 	swapChainResources[0]->Release();
 	swapChainResources[1]->Release();
 	swapChain->Release();
