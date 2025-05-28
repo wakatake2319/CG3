@@ -657,7 +657,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
 
-	*materialData = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+	*materialData = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	// WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
 	ID3D12Resource* wvpResource = CreateBufferResource(device, sizeof(Matrix4x4));
@@ -889,6 +889,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, static_cast<float>(kwindowWidth), static_cast<float>(kwindowHeight), 0.0f, 1.0f);
 			*wvpData = worldMatrix;
 
+
+			ImGui::Begin("MaterialColor");
+			ImGui::ColorEdit4("Color", &(*materialData).x);
+			ImGui::End();
 
 
 			// ゲーム処理
