@@ -52,6 +52,8 @@ struct Material {
 	DirectX::XMFLOAT4 color;
 };
 
+double pi = 3.14;
+
 static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception) {
 	SYSTEMTIME time;
 	GetLocalTime(&time);
@@ -808,7 +810,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
 	// 頂点リソースの設定
 	D3D12_RESOURCE_DESC vertexResourceDesc{};
-	// バッファリソース。てぅすちゃの場合はまた別の設定をする
+	// バッファリソース。テクスチャの場合はまた別の設定をする
 	vertexResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 	// リソースのサイズ。今回はVector4を3頂点分
 	vertexResourceDesc.Width = sizeof(VertexData) * 3;
@@ -820,7 +822,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// バッファの場合はこれにする決まり
 	vertexResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 	// 実際に頂点にリソースを作る
-	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * 6);
+
+	// ============================
+	// Sprite
+	// ============================
+	// 分割数
+	const uint32_t kSubdivision = 10;
+
+	uint32_t vertexCount = kSubdivision * kSubdivision * 6;
+
+
+
+	// 頂点にリソースを作る
+	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * vertexCount);
 	assert(SUCCEEDED(hr));
 
 	// 頂点バッファビューを作成する
@@ -828,7 +842,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// リソースの先頭のアドレスから使う
 	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
 	// 使用するリソースのサイズは頂点3つ分のサイズ
-	vertexBufferView.SizeInBytes = sizeof(VertexData) * 6;
+	vertexBufferView.SizeInBytes = sizeof(VertexData) * vertexCount;
 	// 1頂点当たりのサイズ
 	vertexBufferView.StrideInBytes = sizeof(VertexData);
 
@@ -837,34 +851,57 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 書き込むためのアドレス取得
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
 
-	// 三角形1枚目
-	// 左下
-	vertexData[0].position = {-0.5f, -0.5f, 0.0f, 1.0f};
-	vertexData[0].texcoord = {0.0f, 1.0f};
-	// 上
-	vertexData[1].position = {0.0f, 0.5f, 0.0f, 1.0f};
-	vertexData[1].texcoord = {0.5f, 0.0f};
-	// 右下
-	vertexData[2].position = {0.5f, -0.5f, 0.0f, 1.0f};
-	vertexData[2].texcoord = {1.0f, 1.0f};
+		// 経度分割1つ分の角度 φb
+	const float kLoneEvery = float(pi * 2.0f / float(kSubdivision));
+	// 緯度分割1つ分の角度 Θb
+	const float kLatEvery = float(pi / float(kSubdivision));
 
-	// 三角形2枚目
-	// 左下
-	vertexData[3].position = {-0.5f, -0.5f, 0.5f, 1.0f};
-	vertexData[3].texcoord = {0.0f, 1.0f};
-	// 上
-	vertexData[4].position = {0.0f, 0.0f, 0.0f, 1.0f};
-	vertexData[4].texcoord = {0.5f, 0.0f};
-	// 右下
-	vertexData[5].position = {0.5f, -0.5f, -0.5f, 1.0f};
-	vertexData[5].texcoord = {1.0f, 1.0f};
+	// 緯度の方向に分割
+	for (uint32_t latIndex = 1; latIndex < kSubdivision; ++latIndex) {
+		// 現在の緯度
+		float lat = -float(pi / 2.0f) + kLatEvery * float(latIndex);
+		// 経度の方向に分割 0~2π
+		for (uint32_t lonIndex = 0; lonIndex <= kSubdivision; ++lonIndex) {
+			uint32_t start = (latIndex * kSubdivision + lonIndex) * 6;
+			// φ
+			float lon = lonIndex * kLoneEvery;
 
+			VertexData vertA = {
+			    {std::cosf(lat) * std::cosf(lon), std::sinf(lat), std::cosf(lat) * std::sinf(lon), 1.0f},
+                {float(lonIndex) / float(kSubdivision), 1.0f - float(latIndex) / float(kSubdivision)}
+            };
+			VertexData vertB = {
+			    {std::cosf(lat + kLatEvery) * std::cosf(lon), std::sinf(lat + kLatEvery), std::cosf(lat + kLatEvery) * std::sinf(lon), 1.0f},
+			    {float(lonIndex) / float(kSubdivision), 1.0f - float(latIndex + 1.0f) / float(kSubdivision)}
+            };
+			VertexData vertC = {
+			    {std::cosf(lat) * std::cosf(lon + kLoneEvery), std::sinf(lat), std::cosf(lat) * std::sinf(lon + kLoneEvery), 1.0f},
+			    {float(lonIndex + 1.0f) / float(kSubdivision), 1.0f - float(latIndex) / float(kSubdivision)}
+            };
+			VertexData vertD = {
+			    {std::cosf(lat + kLatEvery) * std::cosf(lon + kLoneEvery), std::sinf(lat + kLatEvery), std::cosf(lat + kLatEvery) * std::sinf(lon + kLoneEvery), 1.0f},
+			    {float(lonIndex + 1.0f) / float(kSubdivision), 1.0f - float(latIndex + 1.0f) / float(kSubdivision)}
+            };
+
+			// 三角形1: A-B-C
+			vertexData[start + 0] = vertA;
+			vertexData[start + 1] = vertB;
+			vertexData[start + 2] = vertC;
+
+			// 三角形2: C-B-D
+			vertexData[start + 3] = vertC;
+			vertexData[start + 4] = vertB;
+			vertexData[start + 5] = vertD;
+		}
+	}
 
 	// ============================
 	// Sprite
 	// ============================
+
+
 	// 頂点にリソースを作る
-	ID3D12Resource* vertexResourceSprite = CreateBufferResource(device, sizeof(VertexData) * 6);
+	ID3D12Resource* vertexResourceSprite = CreateBufferResource(device, sizeof(VertexData) * vertexCount);
 	assert(SUCCEEDED(hr));
 
 	// 頂点バッファビューを作成する
@@ -872,7 +909,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// リソースの先頭のアドレスから使う
 	vertexBufferViewSprite.BufferLocation = vertexResourceSprite->GetGPUVirtualAddress();
 	// 使用するリソースのサイズは頂点3つ分のサイズ
-	vertexBufferViewSprite.SizeInBytes = sizeof(VertexData) * 6;
+	vertexBufferViewSprite.SizeInBytes = sizeof(VertexData) * vertexCount;
 	// 1頂点当たりのサイズ
 	vertexBufferViewSprite.StrideInBytes = sizeof(VertexData);
 
@@ -902,6 +939,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 右下
 	vertexDataSprite[5].position = {640.0f, 360.0f, 0.0f, 1.0f};
 	vertexDataSprite[5].texcoord = {1.0f, 1.0f};
+
+
+
 
 	// Sprite用のTransformMatrix用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
 	ID3D12Resource* transformationMatrixResourceSprite = CreateBufferResource(device, sizeof(Matrix4x4));
@@ -1105,7 +1145,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
 
 			// 描画。(DrawCall/ドローコール)。3頂点で1つのインスタンス
-			commandList->DrawInstanced(6, 1, 0, 0);
+			commandList->DrawInstanced(vertexCount, 1, 0, 0);
 
 
 			commandList->IASetVertexBuffers(0, 1, &vertexBufferViewSprite);
