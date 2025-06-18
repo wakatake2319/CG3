@@ -46,10 +46,17 @@ struct Vector4 {
 struct VertexData {
 	Vector4 position;
 	Vector2 texcoord;
+	Vector3 normal;
 };
 
 struct Material {
-	DirectX::XMFLOAT4 color;
+	Vector4 color;
+	int32_t enableLighting;
+};
+
+struct TransformationMatrix {
+	Matrix4x4 WVP;
+	Matrix4x4 World;
 };
 
 double pi = 3.14;
@@ -740,7 +747,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	assert(SUCCEEDED(hr));
 
 	// InputLayout
-	D3D12_INPUT_ELEMENT_DESC inputElementDescs[2] = {};
+	D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
 	inputElementDescs[0].SemanticName = "POSITION";
 	inputElementDescs[0].SemanticIndex = 0;
 	inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -749,6 +756,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	inputElementDescs[1].SemanticIndex = 0;
 	inputElementDescs[1].Format = DXGI_FORMAT_R32G32_FLOAT;
 	inputElementDescs[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	inputElementDescs[2].SemanticName = "NORMAL";
+	inputElementDescs[2].SemanticIndex = 0;
+	inputElementDescs[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	inputElementDescs[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
 	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
 	inputLayoutDesc.pInputElementDescs = inputElementDescs;
 	inputLayoutDesc.NumElements = _countof(inputElementDescs);
@@ -878,6 +889,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// 経度の方向に分割 0~2π
 		for (uint32_t lonIndex = 0; lonIndex <= kSubdivision; ++lonIndex) {
 			uint32_t start = (latIndex * kSubdivision + lonIndex) * 6;
+			uint32_t index = (latIndex * kSubdivision + lonIndex) * 6;
 			// φ
 			float lon = lonIndex * kLoneEvery;
 
@@ -907,6 +919,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			vertexData[start + 3] = vertC;
 			vertexData[start + 4] = vertB;
 			vertexData[start + 5] = vertD;
+
+			vertexData[index].normal.x = vertexData[index].position.x;
+			vertexData[index].normal.y = vertexData[index].position.y;
+			vertexData[index].normal.z = vertexData[index].position.z;
+
 		}
 	}
 
@@ -942,23 +959,34 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 左下
 	vertexDataSprite[0].position = {0.0f, 360.f, 0.0f, 1.0f};
 	vertexDataSprite[0].texcoord = {0.0f, 1.0f};
+	vertexDataSprite[0].normal = {0.0f,0.0f, 1.0f};
 	// 上
 	vertexDataSprite[1].position = {0.0f, 0.0f, 0.0f, 1.0f};
 	vertexDataSprite[1].texcoord = {0.0f, 0.0f};
+	vertexDataSprite[1].normal = {0.0f, 0.0f, 1.0f};
+
 	// 右下
 	vertexDataSprite[2].position = {640.0f, 360.0f, 0.0f, 1.0f};
 	vertexDataSprite[2].texcoord = {1.0f, 1.0f};
+	vertexDataSprite[2].normal = {0.0f, 0.0f, 1.0f};
+
 
 	// 三角形2枚目
 	// 左下
 	vertexDataSprite[3].position = {0.0f, 0.0f, 0.0f, 1.0f};
 	vertexDataSprite[3].texcoord = {0.0f, 0.0f};
+	vertexDataSprite[3].normal = {0.0f, 0.0f, 1.0f};
+
 	// 上
 	vertexDataSprite[4].position = {640.0f, 0.0f, 0.0f, 1.0f};
 	vertexDataSprite[4].texcoord = {1.0f, 0.0f};
+	vertexDataSprite[4].normal = {0.0f, 0.0f, 1.0f};
+
 	// 右下
 	vertexDataSprite[5].position = {640.0f, 360.0f, 0.0f, 1.0f};
 	vertexDataSprite[5].texcoord = {1.0f, 1.0f};
+	vertexDataSprite[5].normal = {0.0f, 0.0f, 1.0f};
+
 
 
 
@@ -1076,10 +1104,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// SRVの生成
 	device->CreateShaderResourceView(textureResource, &srvDesc, textureSrvHandleCPU);
 
-
-
-
-
 	// DSVの設定
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 	// Format。基本的にはResourceに合わせる
@@ -1091,6 +1115,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// SRV切り替え
 	bool useMonsterBall = true;
+
+
+	// sprite用のマテリアルを作成
+	ID3D12Resource* materialResourceSprite = CreateBufferResource(device, sizeof(Material));
+	// Mapしてデータに書き込む。色は白に設定
+	Material* materialDataSprite = nullptr;
+	materialResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&materialDataSprite));
+	// spriteはLightingしないのでfalseを設定する
+	materialDataSprite->enableLighting = false;
+	materialDataSprite->color = {1.0f, 1.0f, 1.0f, 1.0f};
+
 
 	// ==============================
 	// ゲームループ
@@ -1196,7 +1231,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			// 形状を設定。PSOに設定しているものとはまた別。同じものを設定すると考えておけばよい
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			// マテリアルCBufferの場所を設定
-			commandList->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
+			commandList->SetGraphicsRootConstantBufferView(0, materialResourceSprite->GetGPUVirtualAddress());
 			// wvp用のCBufferの場所を設定
 			commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 			// SRVのDescriptorTableの戦闘を設定。2はrootParameters[2]である。
@@ -1294,6 +1329,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	depthStencilResource->Release();
 	vertexResourceSprite->Release();
 	transformationMatrixResourceSprite->Release();
+	materialResourceSprite->Release();
 #ifdef _DEBUG
 	debugController->Release();
 #endif
