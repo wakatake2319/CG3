@@ -24,3 +24,11 @@ PixelShaderOutput main(VertexShaderOutput input)
     return output;
 }
 
+struct DirectionalLight
+{
+    float32_t4 color;
+    float32_t3 direction;
+    float intensity;
+};
+
+ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);

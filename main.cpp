@@ -59,6 +59,12 @@ struct TransformationMatrix {
 	Matrix4x4 World;
 };
 
+struct DirectionalLight {
+	Vector4 color;     // 光の色
+	Vector3 direction; // 光の方向
+	float intensity;   // 光の強さ
+};
+
 double pi = 3.14;
 
 static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception) {
@@ -691,6 +697,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// Tableで利用する数
 	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange);
 
+	// CBVを使う
+	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	// PixelShaderで使う
+	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	// レジスタ番号1を使う
+	rootParameters[3].Descriptor.ShaderRegister = 1;
+
+
+
 	// Samplerの設定
 	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {};
 	// バイリニアフィルタ
@@ -1124,7 +1139,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	materialResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&materialDataSprite));
 	// spriteはLightingしないのでfalseを設定する
 	materialDataSprite->enableLighting = false;
-	materialDataSprite->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	materialDataSprite->color = {1.0f, 1.0f, 1.0f, 1.0f}; 
+	
+	
+
+	// sprite用のマテリアルを作成
+	ID3D12Resource* directionalLight = CreateBufferResource(device, sizeof(DirectionalLight));
+	// Mapしてデータに書き込む。色は白に設定
+	DirectionalLight* directionalLightData = nullptr;
+	directionalLight->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
+	// spriteはLightingしないのでfalseを設定する
+	directionalLightData->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	directionalLightData->direction = {0.0f, -1.0f, 0.0f};
+	directionalLightData->intensity = 1.0f;
 
 
 	// ==============================
