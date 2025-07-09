@@ -815,7 +815,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
 	// 比較関数はLessEqual。つまり、近ければ描画される
 	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-
+	
 	// ==========================
 	// PSOを生成する
 	// ==========================
@@ -849,6 +849,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	hr = device->CreateGraphicsPipelineState(&graphicsPipelineStateDesc, IID_PPV_ARGS(&graphicsPipelineState));
 	assert(SUCCEEDED(hr));
 
+	// =======================================================================================
 	// ================================
 	// VertexResourceを生成する
 	// ================================
@@ -875,9 +876,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 球
 	// ============================
 	// 分割数
-	const uint32_t kSubdivision = 10;
+	const uint32_t kSubdivision = 16;
 
-	uint32_t vertexCount = kSubdivision * kSubdivision * 6;
+	uint32_t vertexCount = (kSubdivision + 1) * (kSubdivision + 1);
+
 
 
 
@@ -899,55 +901,44 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 書き込むためのアドレス取得
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
 
-		// 経度分割1つ分の角度 φb
-	const float kLoneEvery = float(pi * 2.0f / float(kSubdivision));
+
+	// 球の頂点データを作成する
+	// 経度分割1つ分の角度 φb
+	const float kLonEvery = float(pi * 2.0f / float(kSubdivision));
 	// 緯度分割1つ分の角度 Θb
 	const float kLatEvery = float(pi / float(kSubdivision));
 
+
 	// 緯度の方向に分割
-	for (uint32_t latIndex = 1; latIndex < kSubdivision; ++latIndex) {
+	for (uint32_t latIndex = 0; latIndex < (kSubdivision+1); ++latIndex) {
 		// 現在の緯度
-		float lat = -float(pi / 2.0f) + kLatEvery * float(latIndex);
+		float lat = -float(pi / 2.0f) + kLatEvery * latIndex;
 		// 経度の方向に分割 0~2π
-		for (uint32_t lonIndex = 0; lonIndex <= kSubdivision; ++lonIndex) {
-			uint32_t start = (latIndex * kSubdivision + lonIndex) * 6;
-			//uint32_t index = (latIndex * kSubdivision + lonIndex) * 6;
-			// φ
-			float lon = lonIndex * kLoneEvery;
+		for (uint32_t lonIndex = 0; lonIndex < (kSubdivision+1); ++lonIndex) {
+			// uint32_t index = (latIndex * kSubdivision + lonIndex) * 6;
+			//  φ
+			float lon = lonIndex * kLonEvery;
 
 			VertexData vertA = {
-			    {std::cosf(lat) * std::cosf(lon), std::sinf(lat), std::cosf(lat) * std::sinf(lon), 1.0f},
-                {float(lonIndex) / float(kSubdivision), 1.0f - float(latIndex) / float(kSubdivision)}
-            };
-			VertexData vertB = {
-			    {std::cosf(lat + kLatEvery) * std::cosf(lon), std::sinf(lat + kLatEvery), std::cosf(lat + kLatEvery) * std::sinf(lon), 1.0f},
-			    {float(lonIndex) / float(kSubdivision), 1.0f - float(latIndex + 1.0f) / float(kSubdivision)}
-            };
-			VertexData vertC = {
-			    {std::cosf(lat) * std::cosf(lon + kLoneEvery), std::sinf(lat), std::cosf(lat) * std::sinf(lon + kLoneEvery), 1.0f},
-			    {float(lonIndex + 1.0f) / float(kSubdivision), 1.0f - float(latIndex) / float(kSubdivision)}
-            };
-			VertexData vertD = {
-			    {std::cosf(lat + kLatEvery) * std::cosf(lon + kLoneEvery), std::sinf(lat + kLatEvery), std::cosf(lat + kLatEvery) * std::sinf(lon + kLoneEvery), 1.0f},
-			    {float(lonIndex + 1.0f) / float(kSubdivision), 1.0f - float(latIndex + 1.0f) / float(kSubdivision)}
+			    {
+				std::cosf(lat) * std::cosf(lon), 
+				std::sinf(lat), 
+				std::cosf(lat) * std::sinf(lon), 
+				1.0f
+				},
+                {
+				float(lonIndex) / float(kSubdivision),
+				1.0f - float(latIndex) / float(kSubdivision)
+				},
+                {
+                 std::cosf(lat) * std::cosf(lon),
+                 std::sinf(lat),
+                 std::cosf(lat) * std::sinf(lon), 
+			    }
             };
 
-			// 三角形1: A-B-C
-			vertexData[start + 0] = vertA;
-			vertexData[start + 1] = vertB;
-			vertexData[start + 2] = vertC;
-
-			// 三角形2: C-B-D
-			vertexData[start + 3] = vertC;
-			vertexData[start + 4] = vertB;
-			vertexData[start + 5] = vertD;
-
-			for (int i = 0; i < 6; ++i) {
-				Vector4 pos = vertexData[start + i].position;
-				Vector3 n = Normalize(Vector3{pos.x, pos.y, pos.z}); // Normalize関数は自作かDirectXMath等を使う
-				vertexData[start + i].normal = n;
-			}
-
+			uint32_t start = (latIndex * (kSubdivision+1) + lonIndex);
+			vertexData[start] = vertA;
 		}
 	}
 
@@ -1010,26 +1001,76 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 単位行列を書き込んでおく
 	transformationMatrixDataSprite->WVP = MakeIdentity4x4();
 
+	// =======================================================================================
 
+
+	// =======================================================================================
+	// =================================
 	// index
-	ID3D12Resource* indexResourceSprite = CreateBufferResource(device, sizeof(uint32_t) * 6);
+	// =================================
+	
+	const uint32_t indexCount = kSubdivision * kSubdivision * 6;
+
+
+	// 球
+	ID3D12Resource* indexResourceSphere = CreateBufferResource(device, sizeof(uint32_t) * indexCount);
+	D3D12_INDEX_BUFFER_VIEW indexBufferViewSphere{};
+	indexBufferViewSphere.BufferLocation = indexResourceSphere->GetGPUVirtualAddress();
+	indexBufferViewSphere.SizeInBytes = sizeof(uint32_t) * indexCount;
+	indexBufferViewSphere.Format = DXGI_FORMAT_R32_UINT;
+	uint32_t* indexDataSphere = nullptr;
+	indexResourceSphere->Map(0, nullptr, reinterpret_cast<void**>(&indexDataSphere));
+
+	// インデックスの生成（UVスフィア方式）
+	// 注意：頂点の生成コードと同じ subdivision ロジックと対応させる
+	uint32_t index = 0;
+	for (uint32_t lat = 0; lat < kSubdivision; ++lat) {
+		for (uint32_t lon = 0; lon < kSubdivision; ++lon) {
+			uint32_t current = lat * (kSubdivision + 1) + lon;
+			uint32_t next = current + kSubdivision + 1;
+
+			// 2つの三角形を構成 (quad → 2 triangles)
+			indexDataSphere[index++] = current;
+			indexDataSphere[index++] = next;
+			indexDataSphere[index++] = current + 1;
+
+			indexDataSphere[index++] = current + 1;
+			indexDataSphere[index++] = next;
+			indexDataSphere[index++] = next + 1;
+		}
+	}
+
+
+	// スプライト
+	ID3D12Resource* indexResourceSprite = CreateBufferResource(device, sizeof(uint32_t) * indexCount);
 
 	D3D12_INDEX_BUFFER_VIEW indexBufferViewSprite{};
 	// リソースの先頭のアドレスから使う
 	indexBufferViewSprite.BufferLocation = indexResourceSprite->GetGPUVirtualAddress();
 	// 使用するリソースのサイズはインデックス6つ分のサイズ
-	indexBufferViewSprite.SizeInBytes = sizeof(uint32_t) * 6;
+	indexBufferViewSprite.SizeInBytes = sizeof(uint32_t) * indexCount;
 	// インデックスはuint32_tとする
 	indexBufferViewSprite.Format = DXGI_FORMAT_R32_UINT;
 	// インデックスリソースにデータを書き込む
 	uint32_t* indexDataSprite = nullptr;
 	indexResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&indexDataSprite));
-	indexDataSprite[0] = 0; 
-	indexDataSprite[1] = 1; 
-	indexDataSprite[2] = 2; 
-	indexDataSprite[3] = 1; 
-	indexDataSprite[4] = 3; 
-	indexDataSprite[5] = 2; 
+
+
+
+	//for (uint32_t latindec = 0;latIndex)
+
+	for (uint32_t lat = 0; lat < kSubdivision; ++lat) {
+		for (uint32_t lon = 0; lon < kSubdivision; ++lon) {
+			indexDataSprite[0] = 0;
+			indexDataSprite[1] = 1;
+			indexDataSprite[2] = 2;
+			indexDataSprite[3] = 1;
+			indexDataSprite[4] = 3;
+			indexDataSprite[5] = 2;
+		}
+	}
+
+	// =======================================================================================
 
 
 
@@ -1272,6 +1313,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			// =====================
 			// 描画
 			// =====================
+			
+
+			// =====================================================
+			// 球
 			// Viewportを設定
 			commandList->RSSetViewports(1, &viewport);
 			// Scirssorを設定
@@ -1282,8 +1327,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->SetPipelineState(graphicsPipelineState);
 			// VBVを設定
 			commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+
+			commandList->IASetIndexBuffer(&indexBufferViewSphere);
 			// 形状を設定。PSOに設定しているものとはまた別。同じものを設定すると考えておけばよい
-			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); 
+			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			// 球のマテリアルCBufferの場所を設定
 			commandList->SetGraphicsRootConstantBufferView(0, materialResourceSphere->GetGPUVirtualAddress());
 			commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
@@ -1295,28 +1342,28 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
 			// MonsterBall
 			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU2);
-			//変数を見て利用するSRV
+			// 変数を見て利用するSRV
 			commandList->SetGraphicsRootDescriptorTable(2, useMonsterBall ? textureSrvHandleGPU2 : textureSrvHandleGPU);
 
-
+			
 			// 描画。(DrawCall/ドローコール)。3頂点で1つのインスタンス
-			commandList->DrawInstanced(vertexCount, 1, 0, 0);
+			commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+			// ======================================================================
 
-
+			//====================================================
+			// スプライト
 			commandList->IASetVertexBuffers(0, 1, &vertexBufferViewSprite);
+			// IBVを設定
+			commandList->IASetIndexBuffer(&indexBufferViewSprite);
 			commandList->SetGraphicsRootConstantBufferView(0, materialResourceSprite->GetGPUVirtualAddress());
 			commandList->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite->GetGPUVirtualAddress());
-			commandList->SetGraphicsRootConstantBufferView(3, directionalLight->GetGPUVirtualAddress()); 
+			//commandList->SetGraphicsRootConstantBufferView(3, directionalLight->GetGPUVirtualAddress()); 
 			// spriteを常にuvCheckerにする
 			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
 
-			commandList->DrawInstanced(6, 1, 0, 0);
-
-			// IBVを設定
-			commandList->IASetIndexBuffer(&indexBufferViewSprite);
 			// 6個のインデックスを使用し、1つのインスタンスを描画。そのほかは当面0でいい
 			commandList->DrawIndexedInstanced(6, 1, 0, 0,0);
-
+			//======================================================================
 
 			// 実際のcommandListのImGuiの描画コマンドを積む
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
@@ -1397,6 +1444,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	materialResourceSprite->Release();
 	materialResourceSphere->Release();
 	directionalLight->Release();
+	indexResourceSphere->Release();
 	indexResourceSprite->Release();
 #ifdef _DEBUG
 	debugController->Release();
