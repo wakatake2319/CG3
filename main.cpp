@@ -876,7 +876,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 球
 	// ============================
 	// 分割数
-	const uint32_t kSubdivision = 16;
+	const uint32_t kSubdivision = 32;
 
 	uint32_t vertexCount = (kSubdivision + 1) * (kSubdivision + 1);
 
