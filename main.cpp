@@ -1275,7 +1275,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			ImGui::Begin("MaterialColor");
 			ImGui::ColorEdit4("Color", &materialData->color.x);
-			// ImGui::ColorEdit4("litingColor", &(directionalLightData->color).x);
+			ImGui::ColorEdit4("litingColor", &(directionalLightData->color).x);
 			ImGui::DragFloat3("litingColor", &(directionalLightData->direction).x);
 			ImGui::Checkbox("useMonsterBall", &useMonsterBall);
 			ImGui::DragFloat2("UVTranslate", &uvTransformSprite.translate.x,0.01f,-10.0f,10.0f);
