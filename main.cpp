@@ -1210,6 +1210,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	materialResourceSphere->Map(0, nullptr, reinterpret_cast<void**>(&materialDataSphere));
 	materialDataSphere->enableLighting = true;
 	materialDataSphere->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	materialDataSphere->uvTransform = MakeIdentity4x4();
+
 
 	// スプライト用マテリアル（ライティング無効）
 	ID3D12Resource* materialResourceSprite = CreateBufferResource(device, sizeof(Material));
@@ -1226,6 +1228,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	directionalLightData->color = {1.0f, 1.0f, 1.0f, 1.0f};
 	directionalLightData->direction = {0.0f, -1.0f, 0.0f};
 	directionalLightData->intensity = 1.0f;
+
 
 
 	// ==============================
@@ -1262,6 +1265,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			Matrix4x4 worldViewProjectionMatrixSprite = Multiply(worldMatrixSprite, Multiply(viewMatrixSprite, projectiomMatrixSprite));
 			transformationMatrixDataSprite->World = worldMatrixSprite;
 			transformationMatrixDataSprite->WVP = worldViewProjectionMatrixSprite;
+
+
+			Matrix4x4 uvTransformMatrix = MakeScaleMatrix(uvTransformSprite.scale);
+			uvTransformMatrix = Multiply(uvTransformMatrix, MakeRotateZMatrix(uvTransformSprite.rotate.z));
+			uvTransformMatrix = Multiply(uvTransformMatrix, MakeTranslateMatrix(uvTransformSprite.translate));
+			materialDataSprite->uvTransform = uvTransformMatrix;
+
 
 			ImGui::Begin("MaterialColor");
 			ImGui::ColorEdit4("Color", &materialData->color.x);

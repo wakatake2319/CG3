@@ -296,3 +296,35 @@ Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float botto
 	return result;
 }
 
+Matrix4x4 MakeScaleMatrix(const Vector3& scale) {
+	Matrix4x4 matrix = {};
+	matrix.m[0][0] = scale.x;
+	matrix.m[1][1] = scale.y;
+	matrix.m[2][2] = scale.z;
+	matrix.m[3][3] = 1.0f;
+	return matrix;
+}
+
+Matrix4x4 MakeRotateZMatrix(float angle) {
+	Matrix4x4 result = {};
+	float radians = angle * (3.14159265359f / 180.0f); // Convert degrees to radians
+	result.m[0][0] = std::cos(radians);
+	result.m[0][1] = -std::sin(radians);
+	result.m[1][0] = std::sin(radians);
+	result.m[1][1] = std::cos(radians);
+	result.m[2][2] = 1.0f;
+	result.m[3][3] = 1.0f;
+	return result;
+}
+
+Matrix4x4 MakeTranslateMatrix(const Vector3& translate) {
+	Matrix4x4 matrix = {};
+	matrix.m[0][0] = 1.0f;
+	matrix.m[1][1] = 1.0f;
+	matrix.m[2][2] = 1.0f;
+	matrix.m[3][3] = 1.0f;
+	matrix.m[3][0] = translate.x;
+	matrix.m[3][1] = translate.y;
+	matrix.m[3][2] = translate.z;
+	return matrix;
+}
