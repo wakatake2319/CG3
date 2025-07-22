@@ -466,7 +466,6 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 			Vector4 position;		
 			s >> position.x >> position.y >> position.z;
 			position.x *= -1.0f;
-			position.y *= -1.0f;
 			position.w = 1.0f; // w成分は1.0fにする
 			positions.push_back(position);
 
@@ -475,6 +474,7 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 			// テクスチャ座標の読み込み
 			Vector2 texcoord;
 			s >> texcoord.x >> texcoord.y;
+			texcoord.y = 1.0f - texcoord.y;
 			texcoords.push_back(texcoord);
 
 			// 頂点法線
@@ -483,7 +483,6 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 			Vector3 normal;		
 			s >> normal.x >> normal.y >> normal.z;
 			normal.x *= -1.0f;
-			normal.y *= -1.0f;
 			normals.push_back(normal);
 
 			// 面の情報
