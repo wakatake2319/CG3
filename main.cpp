@@ -74,6 +74,7 @@ struct DirectionalLight {
 // モデルデータ構造体
 struct ModelData {
 	std::vector<VertexData> vertices;
+	MaterialData material;
 };
 
 // マテリアルデータ構造体
@@ -484,6 +485,13 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 			modelData.vertices.push_back(triangle[2]);
 			modelData.vertices.push_back(triangle[1]);
 			modelData.vertices.push_back(triangle[0]);
+		} else if (identifier == "mtllib") {
+			// materialTempLibraryファイルの名前を取得する
+			std::string materialFilename;
+			s >> materialFilename; 
+			// 基本的にobjファイルと同一階層にmtlは存在させるので、ディレクトリ名とファイル名を残す
+			modelData.material = LoadMaterialTemplateFile(directoryPath, materialFilename);
+		
 		}
 
 
@@ -491,6 +499,35 @@ ModelData LoadObjFile(const std::string& directoryPath, const std::string& filen
 
 file.close();     // ファイルを閉じる
 return modelData; // 読み込んだModelDataを返す
+}
+
+
+// mtlファイルを読む関数
+MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
+	// 1.中で必要となる変数の宣言
+	MaterialData materialData; // 構築するMaterialData
+	std::string line;          // ファイルから読み込んだ1行を格納するもの
+
+	// 2.ファイルを開く
+	std::ifstream file(directoryPath + "/" + filename); // ファイルを開く
+	assert(file.is_open());                             // ファイルが開けなかったら止める
+
+	// 3.実際にファイルを読み、ModelDataを構築していく
+	while (std::getline(file, line)) {
+		std::string identifier; // 行の先頭の識別子を格納するもの
+		std::istringstream s(line); // 行を分解するためのストリーム
+		s >> identifier;            // 先頭の識別子を読む
+
+		// identifierに応じた処理
+		if (identifier == "map_Kd") {
+			std::string textureFilename; 
+			s >> textureFilename; // テクスチャファイル名を読み込む
+			// 連結してファイルパスにする
+			materialData.texturFilePath = directoryPath + "/" + textureFilename; // テクスチャファイルパスを設定		
+		}	
+	}
+	// 4.読み込んだマテリアルデータを返す
+	return materialData; 
 }
 
 
@@ -1238,7 +1275,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	    device, swapChainDesc.BufferCount, rtvDesc.Format, srvDescriptorHeap, srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
 		// 2枚目のTexture
-	DirectX::ScratchImage mipImages2 = LoadTexture("resources/monsterBall.png");
+	DirectX::ScratchImage mipImages2 = LoadTexture(modelData.material.textureFilePath);
 	const DirectX::TexMetadata& metadata2 = mipImages2.GetMetadata();
 	ID3D12Resource* textureResource2 = CreateTextureResource(device, metadata2);
 	ID3D12Resource* val2 = UploadTextureData(textureResource2, mipImages2, device, commandList);
