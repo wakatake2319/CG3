@@ -7,6 +7,7 @@
 #include <filesystem>
 // ファイルに書いたり読んだりするライブラリ
 #include <fstream>
+#include <sstream>
 // 時間を扱うライブラリ
 #include <cassert>
 #include <chrono>
@@ -29,6 +30,9 @@
 #include "externals/imgui/imgui_impl_dx12.h"
 #include "externals/imgui/imgui_impl_win32.h"
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+
+
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -65,6 +69,16 @@ struct DirectionalLight {
 	Vector4 color;     // 光の色
 	Vector3 direction; // 光の方向
 	float intensity;   // 光の強さ
+};
+
+// モデルデータ構造体
+struct ModelData {
+	std::vector<VertexData> vertices;
+};
+
+// マテリアルデータ構造体
+struct MaterialData {
+	std::string texturFilePath;
 };
 
 double pi = 3.14;
@@ -393,6 +407,92 @@ ID3D12Resource* CreateDepthStencilTextureResource(ID3D12Device* device, int32_t 
 	assert(SUCCEEDED(hr));
 	return resource;
 }
+
+// objを読む関数
+ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename) {
+	// 中で必要となる変数の宣言
+	ModelData modelData; // 構築するModelData
+	std::vector<Vector4> positions;		// 位置
+	std::vector<Vector3> normals;   // 法線
+	std::vector<Vector2> texcoords;     // テクスチャ座標
+	std::string line;					// ファイルから読み込んだ1行を格納するもの
+
+	// ファイルを開く
+	std::ifstream file(directoryPath + "/" + filename);
+	assert(file.is_open());
+
+	// 実際にファイルを読み、ModelDataを構築していく
+	while (std::getline(file, line)) {
+		std::string identifier;
+		std::istringstream s(line);
+		s >> identifier; // 先頭の識別子を読む
+
+		// identifilerに応じた処理
+		// 頂点位置
+		if (identifier == "v") {
+			// 位置情報の読み込み
+			Vector4 position;		
+			s >> position.x >> position.y >> position.z;
+			position.x *= -1.0f;
+			position.y *= -1.0f;
+			position.w = 1.0f; // w成分は1.0fにする
+			positions.push_back(position);
+
+			// 頂点テクスチャ座標
+		} else if (identifier == "vt") {
+			// テクスチャ座標の読み込み
+			Vector2 texcoord;
+			s >> texcoord.x >> texcoord.y;
+			texcoords.push_back(texcoord);
+
+			// 頂点法線
+		} else if (identifier == "vn") {
+			// 法線の読み込み
+			Vector3 normal;		
+			s >> normal.x >> normal.y >> normal.z;
+			normal.x *= -1.0f;
+			normal.y *= -1.0f;
+			normals.push_back(normal);
+
+			// 面の情報
+		} else if (identifier == "f") {
+			VertexData triangle[3];
+			// 面は三角形限定。その他は未対応
+			for (int32_t faceVertex = 0; faceVertex < 3; ++faceVertex) {
+				std::string vertexDefinition;
+				s >> vertexDefinition;
+
+				// 頂点の要素へのIndexは「位置/UV/法線」で格納されているので、分解してIndexを取得する
+				std::istringstream v(vertexDefinition);
+				uint32_t elementIndices[3];
+				for (int32_t element = 0; element < 3; ++element) {
+					std::string index;
+
+					// 区切りでインデックスを読んでいく
+					std::getline(v, index, '/');
+					elementIndices[element] = std::stoi(index);
+				}
+
+				Vector4 position = positions[elementIndices[0] - 1];
+				Vector2 texcoord = texcoords[elementIndices[1] - 1];
+				Vector3 normal = normals[elementIndices[2] - 1];
+				//VertexData vertex = {position, texcoord, normal};
+				//modelData.vertices.push_back(vertex);
+				triangle[faceVertex] = {position, texcoord, normal};
+			}
+			// 頂点を逆順で登録することで、周り順を逆にする
+			modelData.vertices.push_back(triangle[2]);
+			modelData.vertices.push_back(triangle[1]);
+			modelData.vertices.push_back(triangle[0]);
+		}
+
+
+	}
+
+file.close();     // ファイルを閉じる
+return modelData; // 読み込んだModelDataを返す
+}
+
 
 // CPUの関数
 D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index) 
@@ -884,67 +984,68 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	uint32_t vertexCount = (kSubdivision + 1) * (kSubdivision + 1);
 
-
-
-
-	// 頂点にリソースを作る
-	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * vertexCount);
-	assert(SUCCEEDED(hr));
-
+	// モデル読み込み
+	ModelData modelData = LoadObjFile("resources", "plane.obj");
+	// 頂点リソースを作る
+	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * modelData.vertices.size());
 	// 頂点バッファビューを作成する
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
 	// リソースの先頭のアドレスから使う
 	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
-	// 使用するリソースのサイズは頂点3つ分のサイズ
-	vertexBufferView.SizeInBytes = sizeof(VertexData) * vertexCount;
+	// 使用するリソースのサイズは頂点のサイズ
+	vertexBufferView.SizeInBytes = UINT(sizeof(VertexData) * modelData.vertices.size());
 	// 1頂点当たりのサイズ
 	vertexBufferView.StrideInBytes = sizeof(VertexData);
+
 
 	// 頂点リソースにデータを書き込む
 	VertexData* vertexData = nullptr;
 	// 書き込むためのアドレス取得
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
+	// 頂点データをリソースにコピー
+	std::memcpy(vertexData, modelData.vertices.data(), sizeof(VertexData) * modelData.vertices.size());
 
 
-	// 球の頂点データを作成する
-	// 経度分割1つ分の角度 φb
-	const float kLonEvery = float(pi * 2.0f / float(kSubdivision));
-	// 緯度分割1つ分の角度 Θb
-	const float kLatEvery = float(pi / float(kSubdivision));
 
-
-	// 緯度の方向に分割
-	for (uint32_t latIndex = 0; latIndex < (kSubdivision+1); ++latIndex) {
-		// 現在の緯度
-		float lat = -float(pi / 2.0f) + kLatEvery * latIndex;
-		// 経度の方向に分割 0~2π
-		for (uint32_t lonIndex = 0; lonIndex < (kSubdivision+1); ++lonIndex) {
-			// uint32_t index = (latIndex * kSubdivision + lonIndex) * 6;
-			//  φ
-			float lon = lonIndex * kLonEvery;
-
-			VertexData vertA = {
-			    {
-				std::cosf(lat) * std::cosf(lon), 
-				std::sinf(lat), 
-				std::cosf(lat) * std::sinf(lon), 
-				1.0f
-				},
-                {
-				float(lonIndex) / float(kSubdivision),
-				1.0f - float(latIndex) / float(kSubdivision)
-				},
-                {
-                 std::cosf(lat) * std::cosf(lon),
-                 std::sinf(lat),
-                 std::cosf(lat) * std::sinf(lon), 
-			    }
-            };
-
-			uint32_t start = (latIndex * (kSubdivision+1) + lonIndex);
-			vertexData[start] = vertA;
-		}
-	}
+	//// 球の頂点データを作成する
+	//// 経度分割1つ分の角度 φb
+	//const float kLonEvery = float(pi * 2.0f / float(kSubdivision));
+	//// 緯度分割1つ分の角度 Θb
+	//const float kLatEvery = float(pi / float(kSubdivision));
+	//
+	//
+	//// 緯度の方向に分割
+	//for (uint32_t latIndex = 0; latIndex < (kSubdivision+1); ++latIndex) {
+	//	// 現在の緯度
+	//	float lat = -float(pi / 2.0f) + kLatEvery * latIndex;
+	//	// 経度の方向に分割 0~2π
+	//	for (uint32_t lonIndex = 0; lonIndex < (kSubdivision+1); ++lonIndex) {
+	//		// uint32_t index = (latIndex * kSubdivision + lonIndex) * 6;
+	//		//  φ
+	//		float lon = lonIndex * kLonEvery;
+	//
+	//		VertexData vertA = {
+	//		    {
+	//			std::cosf(lat) * std::cosf(lon), 
+	//			std::sinf(lat), 
+	//			std::cosf(lat) * std::sinf(lon), 
+	//			1.0f
+	//			},
+    //            {
+	//			float(lonIndex) / float(kSubdivision),
+	//			1.0f - float(latIndex) / float(kSubdivision)
+	//			},
+    //            {
+    //             std::cosf(lat) * std::cosf(lon),
+    //             std::sinf(lat),
+    //             std::cosf(lat) * std::sinf(lon), 
+	//		    }
+    //        };
+	//
+	//		uint32_t start = (latIndex * (kSubdivision+1) + lonIndex);
+	//		vertexData[start] = vertA;
+	//	}
+	//}
 
 	// ============================
 	// Sprite
@@ -1249,7 +1350,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, static_cast<float>(kwindowWidth) / static_cast<float>(kwindowHeight), 0.1f, 100.0f);
 
-			transform.rotate.y += 0.03f;
+			
 			Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
 			Matrix4x4 cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
 			Matrix4x4 viewMatrix = Inverse(cameraMatrix);
@@ -1274,6 +1375,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 			ImGui::Begin("MaterialColor");
+			ImGui::SliderFloat("Sphere.rotate.x", &transform.rotate.x, -360.0f, 360.0f);
+			ImGui::SliderFloat("Sphere.rotate.y", &transform.rotate.y, -360.0f, 360.0f);
+			ImGui::SliderFloat("Sphere.rotate.z", &transform.rotate.z, -360.0f, 360.0f);
 			ImGui::ColorEdit4("Color", &materialData->color.x);
 			ImGui::ColorEdit4("litingColor", &(directionalLightData->color).x);
 			ImGui::DragFloat3("litingColor", &(directionalLightData->direction).x);
@@ -1370,7 +1474,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			
 			// 描画。(DrawCall/ドローコール)。3頂点で1つのインスタンス
-			commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+			commandList->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
 			// ======================================================================
 
 			//====================================================
@@ -1385,7 +1489,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
 
 			// 6個のインデックスを使用し、1つのインスタンスを描画。そのほかは当面0でいい
-			commandList->DrawIndexedInstanced(6, 1, 0, 0,0);
+			commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+
 			//======================================================================
 
 			// 実際のcommandListのImGuiの描画コマンドを積む
