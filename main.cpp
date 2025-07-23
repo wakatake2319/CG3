@@ -1025,7 +1025,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	uint32_t vertexCount = (kSubdivision + 1) * (kSubdivision + 1);
 
 	// モデル読み込み
-	ModelData modelData = LoadObjFile("resources", "plane.obj");
+	ModelData modelData = LoadObjFile("resources", "axis.obj");
 	// 頂点リソースを作る
 	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexData) * modelData.vertices.size());
 	// 頂点バッファビューを作成する
@@ -1415,9 +1415,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 			ImGui::Begin("MaterialColor");
-			ImGui::SliderFloat("Sphere.rotate.x", &transform.rotate.x, -360.0f, 360.0f);
-			ImGui::SliderFloat("Sphere.rotate.y", &transform.rotate.y, -360.0f, 360.0f);
-			ImGui::SliderFloat("Sphere.rotate.z", &transform.rotate.z, -360.0f, 360.0f);
+			ImGui::DragFloat3("Camera.translate", &cameraTransform.translate.x, 0.01f, -10.0f, 10.0f);
+			ImGui::SliderAngle("Camera.rotate.x", &cameraTransform.rotate.x, -360.0f, 360.0f);
+			ImGui::SliderAngle("Camera.rotate.y", &cameraTransform.rotate.y, -360.0f, 360.0f);
+			ImGui::SliderAngle("Camera.rotate.z", &cameraTransform.rotate.z, -360.0f, 360.0f);
+			ImGui::SliderAngle("Sphere.rotate.x", &transform.rotate.x, -360.0f, 360.0f);
+			ImGui::SliderAngle("Sphere.rotate.y", &transform.rotate.y, -360.0f, 360.0f);
+			ImGui::SliderAngle("Sphere.rotate.z", &transform.rotate.z, -360.0f, 360.0f);
 			ImGui::ColorEdit4("Color", &materialData->color.x);
 			ImGui::ColorEdit4("litingColor", &(directionalLightData->color).x);
 			ImGui::DragFloat3("litingColor", &(directionalLightData->direction).x);
