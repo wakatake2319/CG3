@@ -26,6 +26,7 @@
 #include <dxcapi.h>
 #include <vector>
 #include <wrl.h>
+#include <xaudio2.h>
 
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_dx12.h"
@@ -37,6 +38,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "xaudio2.lib")
 // デバッグ用
 #pragma comment(lib, "Dbghelp.lib")
 // リソースリークチェック
@@ -95,6 +97,28 @@ struct D3DResourceLeakChecker {
 			debug->ReportLiveObjects(DXGI_DEBUG_D3D12, DXGI_DEBUG_RLO_ALL);
 		}
 	}
+};
+
+// 音声データ読み込み
+struct ChunkHeader {
+	char id[4]; // チャンクID
+	uint32_t size; // チャンクサイズ
+};
+// RIFEヘッダチャンク
+struct RiffHeader {
+	ChunkHeader chunk; // "RIFE"
+	char type[4];  // "WAVE"
+};
+//FMTチャンク
+struct FormatCunk {
+	ChunkHeader chunk; // "fmt "
+	WAVEFORMAT fmt;    // 波形フォーマット
+};
+
+struct SoundData {
+	WAVEFORMATEX wfex; // 波形フォーマット
+	BYTE* pBuffer;     // バッファの先頭アドレス
+	unsigned int bufferSize; // バッファのサイズ
 };
 
 Vector3 Normalize(const Vector3& v) {
@@ -545,7 +569,19 @@ file.close();     // ファイルを閉じる
 return modelData; // 読み込んだModelDataを返す
 }
 
+// 音声データ読み込み
+SoundData SoundLoadWave(const char* filename) { 
+	HRESULT result;
 
+	// ファイルオープン
+
+	// .wavデータの読み込み
+
+	// ファイルクローズ
+
+	// 読み込んだ音声データをreturn
+
+}
 
 
 // CPUの関数
@@ -566,6 +602,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descrip
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
+	// リソースリークチェック
 	D3DResourceLeakChecker leakChecker;
 
 
@@ -1390,6 +1427,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	directionalLightData->intensity = 1.0f;
 
 
+	// 音再生の変数の宣言
+	Microsoft::WRL::ComPtr<IXAudio2> xAudio2;
+	IXAudio2MasteringVoice* masteringVoice;
+
+	hr = XAudio2Create(&xAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
+	hr = xAudio2->CreateMasteringVoice(&masteringVoice);
 
 	// ==============================
 	// ゲームループ
