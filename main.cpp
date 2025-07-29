@@ -83,9 +83,19 @@ struct ModelData {
 	MaterialData material;
 };
 
-
-
 double pi = 3.14;
+
+// リソースチェック
+struct D3DResourceLeakChecker {
+	~D3DResourceLeakChecker() {
+		Microsoft::WRL::ComPtr<IDXGIDebug1> debug;
+		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug)))) {
+			debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+			debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
+			debug->ReportLiveObjects(DXGI_DEBUG_D3D12, DXGI_DEBUG_RLO_ALL);
+		}
+	}
+};
 
 Vector3 Normalize(const Vector3& v) {
 	float length = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
@@ -554,6 +564,9 @@ D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descrip
 
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+
+	D3DResourceLeakChecker leakChecker;
+
 
 	CoInitializeEx(0, COINIT_MULTITHREADED);
 
@@ -1588,15 +1601,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 解放処理
 
 
+
+
+
 	CloseWindow(hwnd);
 
-	// リソースリークチェック
-	Microsoft::WRL::ComPtr <IDXGIDebug1> debug;
-	if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&debug)))) {
-		debug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
-		debug->ReportLiveObjects(DXGI_DEBUG_APP, DXGI_DEBUG_RLO_ALL);
-		debug->ReportLiveObjects(DXGI_DEBUG_D3D12, DXGI_DEBUG_RLO_ALL);
-	}
 
 	CoUninitialize();
 	return 0;
