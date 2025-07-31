@@ -1435,15 +1435,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			ImGui::Begin("MaterialColor");
 			ImGui::DragFloat3("Camera.translate", &cameraTransform.translate.x, 0.01f, -10.0f, 10.0f);
-			ImGui::SliderAngle("Camera.rotate.x", &cameraTransform.rotate.x, -360.0f, 360.0f);
-			ImGui::SliderAngle("Camera.rotate.y", &cameraTransform.rotate.y, -360.0f, 360.0f);
-			ImGui::SliderAngle("Camera.rotate.z", &cameraTransform.rotate.z, -360.0f, 360.0f);
-			ImGui::SliderAngle("Sphere.rotate.x", &transform.rotate.x, -360.0f, 360.0f);
-			ImGui::SliderAngle("Sphere.rotate.y", &transform.rotate.y, -360.0f, 360.0f);
-			ImGui::SliderAngle("Sphere.rotate.z", &transform.rotate.z, -360.0f, 360.0f);
-			ImGui::SliderAngle("Sphere.translate.x", &transform.translate.x, -360.0f, 360.0f);
-			ImGui::SliderAngle("Sphere.translate.y", &transform.translate.y, -360.0f, 360.0f);
-			ImGui::SliderAngle("Sphere.translate.z", &transform.translate.z, -360.0f, 360.0f);
+			ImGui::DragFloat3("Camera.rotate.", &cameraTransform.rotate.x, 0.01f, -10.0f, 10.0f);
+			ImGui::DragFloat3("object.rotate.", &transform.rotate.x, 0.01f, -10.0f, 10.0f);
+			ImGui::DragFloat3("object.translate.", &transform.translate.x, 0.01f, -10.0f, 10.0f);
+			ImGui::DragFloat3("object.scale.", &transform.scale.x, 0.01f, -10.0f, 10.0f);
 			ImGui::ColorEdit4("Color", &materialData->color.x);
 			ImGui::ColorEdit4("litingColor", &(directionalLightData->color).x);
 			ImGui::DragFloat3("litingColor", &(directionalLightData->direction).x);
