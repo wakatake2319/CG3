@@ -958,7 +958,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
 	// 裏面(時計回り)を表示しない(D3D12_CULL_MODE_BACK)
 	// D3D12_CULL_MODE_NONEで両面表示
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
 	// 三角形の中を塗りつぶす
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 
@@ -1044,7 +1044,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	uint32_t vertexCount = (kSubdivision + 1) * (kSubdivision + 1);
 
 	// モデル読み込み
-	ModelData modelData = LoadObjFile("resources", "axis.obj");
+	ModelData modelData = LoadObjFile("resources", "plane.obj");
 	// 頂点リソースを作る
 	Microsoft::WRL::ComPtr <ID3D12Resource> vertexResource = CreateBufferResource(device, sizeof(VertexData) * modelData.vertices.size());
 	// 頂点バッファビューを作成する
@@ -1433,16 +1433,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			materialDataSprite->uvTransform = uvTransformMatrix;
 
 
-			ImGui::Begin("MaterialColor");
+			ImGui::Begin("camera");
 			ImGui::DragFloat3("Camera.translate", &cameraTransform.translate.x, 0.01f, -10.0f, 10.0f);
 			ImGui::DragFloat3("Camera.rotate.", &cameraTransform.rotate.x, 0.01f, -10.0f, 10.0f);
-			ImGui::DragFloat3("object.rotate.", &transform.rotate.x, 0.01f, -10.0f, 10.0f);
-			ImGui::DragFloat3("object.translate.", &transform.translate.x, 0.01f, -10.0f, 10.0f);
-			ImGui::DragFloat3("object.scale.", &transform.scale.x, 0.01f, -10.0f, 10.0f);
+			ImGui::End();
+
+			ImGui::Begin("object");
+			ImGui::DragFloat3("rotate.", &transform.rotate.x, 0.01f, -10.0f, 10.0f);
+			ImGui::DragFloat3("translate.", &transform.translate.x, 0.01f, -10.0f, 10.0f);
+			ImGui::DragFloat3("scale.", &transform.scale.x, 0.01f, -10.0f, 10.0f);
 			ImGui::ColorEdit4("Color", &materialData->color.x);
 			ImGui::ColorEdit4("litingColor", &(directionalLightData->color).x);
-			ImGui::DragFloat3("litingColor", &(directionalLightData->direction).x);
+			ImGui::DragFloat3("litingColor.direction", &(directionalLightData->direction).x,0.01f, -10.0f, 10.0f);
 			ImGui::Checkbox("useMonsterBall", &useMonsterBall);
+			ImGui::End();
+
+			
+			ImGui::Begin("sprite");
+			ImGui::DragFloat3("rotate.", &transformSprite.rotate.x, 0.01f, -10.0f, 10.0f);
+			ImGui::DragFloat3("translate.", &transformSprite.translate.x, 0.1f);
+			ImGui::DragFloat3("scale.", &transformSprite.scale.x, 0.01f, -10.0f, 10.0f);
 			ImGui::DragFloat2("UVTranslate", &uvTransformSprite.translate.x,0.01f,-10.0f,10.0f);
 			ImGui::DragFloat2("UVScale", &uvTransformSprite.scale.x, 0.01f, -10.0f, 10.0f);
 			ImGui::SliderAngle("UVRotate", &uvTransformSprite.rotate.z);
