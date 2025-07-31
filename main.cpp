@@ -1441,6 +1441,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::SliderAngle("Sphere.rotate.x", &transform.rotate.x, -360.0f, 360.0f);
 			ImGui::SliderAngle("Sphere.rotate.y", &transform.rotate.y, -360.0f, 360.0f);
 			ImGui::SliderAngle("Sphere.rotate.z", &transform.rotate.z, -360.0f, 360.0f);
+			ImGui::SliderAngle("Sphere.translate.x", &transform.translate.x, -360.0f, 360.0f);
+			ImGui::SliderAngle("Sphere.translate.y", &transform.translate.y, -360.0f, 360.0f);
+			ImGui::SliderAngle("Sphere.translate.z", &transform.translate.z, -360.0f, 360.0f);
 			ImGui::ColorEdit4("Color", &materialData->color.x);
 			ImGui::ColorEdit4("litingColor", &(directionalLightData->color).x);
 			ImGui::DragFloat3("litingColor", &(directionalLightData->direction).x);
