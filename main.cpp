@@ -986,7 +986,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
 	// 裏面(時計回り)を表示しない(D3D12_CULL_MODE_BACK)
 	// D3D12_CULL_MODE_NONEで両面表示
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
 	// 三角形の中を塗りつぶす
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 
@@ -1617,6 +1617,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			// wvp用のCBufferの場所を設定
 			//commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 			// SRVのDescriptorTableの戦闘を設定。2はrootParameters[2]である。
+			commandList->SetGraphicsRootDescriptorTable(1, instancingSrvHandleGPU);
 			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
 			// MonsterBall
 			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU2);
@@ -1628,21 +1629,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->DrawInstanced(UINT(modelData.vertices.size()), 10, 0, 0);
 			// ======================================================================
 
-			//====================================================
-			// スプライト
-			commandList->IASetVertexBuffers(0, 1, &vertexBufferViewSprite);
-			// IBVを設定
-			commandList->IASetIndexBuffer(&indexBufferViewSprite);
-			commandList->SetGraphicsRootConstantBufferView(0, materialResourceSprite->GetGPUVirtualAddress());
-			//commandList->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite->GetGPUVirtualAddress());
-			//commandList->SetGraphicsRootConstantBufferView(3, directionalLight->GetGPUVirtualAddress()); 
-			// spriteを常にuvCheckerにする
-			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
-
-			// 6個のインデックスを使用し、1つのインスタンスを描画。そのほかは当面0でいい
-			commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
-
-			//======================================================================
+			////====================================================
+			//// スプライト
+			//commandList->IASetVertexBuffers(0, 1, &vertexBufferViewSprite);
+			//// IBVを設定
+			//commandList->IASetIndexBuffer(&indexBufferViewSprite);
+			//commandList->SetGraphicsRootConstantBufferView(0, materialResourceSprite->GetGPUVirtualAddress());
+			////commandList->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite->GetGPUVirtualAddress());
+			////commandList->SetGraphicsRootConstantBufferView(3, directionalLight->GetGPUVirtualAddress()); 
+			//// spriteを常にuvCheckerにする
+			//commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
+			//
+			//// 6個のインデックスを使用し、1つのインスタンスを描画。そのほかは当面0でいい
+			//commandList->DrawIndexedInstanced(6, 1, 0, 0, 0);
+			//
+			////======================================================================
 
 			// 実際のcommandListのImGuiの描画コマンドを積む
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList.Get());
