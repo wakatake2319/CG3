@@ -1447,16 +1447,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 	// Transformの作成
-	Transform transformes[kNumInstances];
+	//Transform transformes[kNumInstances];
+	//for (index = 0; index < kNumInstances; ++index) {
+	//	transformes[index].scale = {1.0f, 1.0f, 1.0f};
+	//	transformes[index].rotate = {0.0f, 0.0f, 0.0f};
+	//	transformes[index].translate = {index * 0.1f, index * 0.1f, index * 0.1f};
+	//}
+
+	// particleの作成
+	Particle particles[kNumInstances];
 	for (index = 0; index < kNumInstances; ++index) {
-		transformes[index].scale = {1.0f, 1.0f, 1.0f};
-		transformes[index].rotate = {0.0f, 0.0f, 0.0f};
-		transformes[index].translate = {index * 0.1f, index * 0.1f, index * 0.1f};
+
+
+		particles[index].transform.scale = {1.0f, 1.0f, 1.0f};
+		particles[index].transform.rotate = {0.0f, 0.0f, 0.0f};
+		particles[index].transform.translate = {index * 0.1f, index * 0.1f, index * 0.1f};
+
+		// 速度を上向きに設定
+		particles[index].velocity = {0.0f, 1.0f, 0.0f};
 	}
 
-
-
-
+	// Δtを定義
+	const float kDeltaTime = 1.0f / 60.0f;
+	bool particleUpdate = false;
 
 	// ==============================
 	// ゲームループ
@@ -1504,13 +1517,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			// インスタンスの数だけループ
 			for (index = 0; index < kNumInstances; ++index) {
 				// ワールド行列を計算
-				worldMatrix = MakeAffineMatrix(transformes[index].scale, transformes[index].rotate, transformes[index].translate);
+				worldMatrix = MakeAffineMatrix(particles[index].transform.scale, particles[index].transform.rotate, particles[index].transform.translate);
 				// ワールドビュー射影行列を計算
 				worldViewProjectionMatrix = Multiply(worldMatrix, viewProjectionMatrix);
 				// 書き込み
 				instancingData[index].WVP = worldViewProjectionMatrix;
 				instancingData[index].World = worldMatrix;
+
+				if (particleUpdate) {
+					// パーティクルの位置を更新
+					particles[index].transform.translate.y += particles[index].velocity.y * kDeltaTime;
+				}
+
 			}
+
+
+
 
 			ImGui::Begin("camera");
 			ImGui::DragFloat3("Camera.translate", &cameraTransform.translate.x, 0.01f, -10.0f, 10.0f);
@@ -1536,6 +1558,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::DragFloat2("UVTranslate", &uvTransformSprite.translate.x,0.01f,-10.0f,10.0f);
 			ImGui::DragFloat2("UVScale", &uvTransformSprite.scale.x, 0.01f, -10.0f, 10.0f);
 			ImGui::SliderAngle("UVRotate", &uvTransformSprite.rotate.z);		
+			ImGui::End();
+
+			ImGui::Begin("particle");
+			ImGui::Checkbox("particleUpdate", &particleUpdate);
 			ImGui::End();
 
 
