@@ -26,6 +26,7 @@
 #include <dxcapi.h>
 #include <vector>
 #include <wrl.h>
+#include <random>
 
 #include "externals/imgui/imgui.h"
 #include "externals/imgui/imgui_impl_dx12.h"
@@ -1454,6 +1455,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//	transformes[index].translate = {index * 0.1f, index * 0.1f, index * 0.1f};
 	//}
 
+
+	// Δtを定義
+	const float kDeltaTime = 1.0f / 60.0f;
+	bool particleUpdate = false;
+
+	// 乱数生成器の初期化
+	std::random_device seedGenerator;
+	std::mt19937 randomEngine(seedGenerator());
+
+
 	// particleの作成
 	Particle particles[kNumInstances];
 	for (index = 0; index < kNumInstances; ++index) {
@@ -1465,11 +1476,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		// 速度を上向きに設定
 		particles[index].velocity = {0.0f, 1.0f, 0.0f};
+
+		
+		// 乱数生成
+		std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
+		// 位置と速度をランダムに初期化
+		particles[index].transform.translate = {distribution(randomEngine), distribution(randomEngine), distribution(randomEngine)};
+		particles[index].velocity = {distribution(randomEngine), distribution(randomEngine), distribution(randomEngine)};
+
 	}
 
-	// Δtを定義
-	const float kDeltaTime = 1.0f / 60.0f;
-	bool particleUpdate = false;
+
 
 	// ==============================
 	// ゲームループ
@@ -1526,11 +1543,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 				if (particleUpdate) {
 					// パーティクルの位置を更新
+					particles[index].transform.translate.x += particles[index].velocity.x * kDeltaTime;
 					particles[index].transform.translate.y += particles[index].velocity.y * kDeltaTime;
 				}
 
-			}
 
+			}
 
 
 
