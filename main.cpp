@@ -564,6 +564,20 @@ D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descrip
 	return handleGPU;
 }
 
+// パーティクルの乱数の生成関数
+Particle MakeNewParticle(std::mt19937& randomEngine)
+{
+
+	// 乱数生成
+	std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
+	Particle particle;
+	particle.transform.scale = {1.0f, 1.0f, 1.0f};
+	particle.transform.rotate = {0.0f, 0.0f, 0.0f};
+	// 位置と速度をランダムに初期化
+	particle.transform.translate = {distribution(randomEngine), distribution(randomEngine), distribution(randomEngine)};
+	particle.velocity = {distribution(randomEngine), distribution(randomEngine), distribution(randomEngine)};
+	return particle;
+}
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -1467,26 +1481,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// particleの作成
 	Particle particles[kNumInstances];
+
+
 	for (index = 0; index < kNumInstances; ++index) {
-
-
-		particles[index].transform.scale = {1.0f, 1.0f, 1.0f};
-		particles[index].transform.rotate = {0.0f, 0.0f, 0.0f};
-		particles[index].transform.translate = {index * 0.1f, index * 0.1f, index * 0.1f};
-
-		// 速度を上向きに設定
-		particles[index].velocity = {0.0f, 1.0f, 0.0f};
-
-		
-		// 乱数生成
-		std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
-		// 位置と速度をランダムに初期化
-		particles[index].transform.translate = {distribution(randomEngine), distribution(randomEngine), distribution(randomEngine)};
-		particles[index].velocity = {distribution(randomEngine), distribution(randomEngine), distribution(randomEngine)};
-
+		particles[index] = MakeNewParticle(randomEngine);
 	}
-
-
 
 	// ==============================
 	// ゲームループ
