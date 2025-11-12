@@ -2,9 +2,9 @@
 
 
 struct TransformationMatrix
-{  
+{
     float32_t4x4 WVP;
-    float32_t4x4 World;    
+    float32_t4x4 World;
 };
 ConstantBuffer<TransformationMatrix> gTransformationMatrix : register(b0);
 
@@ -24,6 +24,4 @@ VertexShaderOutput main(VertexShaderInput input)
     output.normal = normalize(mul(input.normal, (float32_t3x3) gTransformationMatrix.World));
     return output;
 }
-
-
 
