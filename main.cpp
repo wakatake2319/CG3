@@ -81,7 +81,7 @@ struct ModelData {
 	MaterialData material;
 };
 
-
+float alpha;
 
 double pi = 3.14;
 
@@ -569,7 +569,8 @@ Particle MakeNewParticle(std::mt19937& randomEngine)
 
 	// 乱数生成
 	std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
-	std::uniform_real_distribution<float> distColor(0.0f, 0.1f);
+	std::uniform_real_distribution<float> distColor(0.0f, 1.0f);
+	std::uniform_real_distribution<float> distTime(1.0f, 3.0f);
 	Particle particle;
 	particle.transform.scale = {1.0f, 1.0f, 1.0f};
 	particle.transform.rotate = {0.0f, 0.0f, 0.0f};
@@ -578,7 +579,10 @@ Particle MakeNewParticle(std::mt19937& randomEngine)
 	particle.velocity = {distribution(randomEngine), distribution(randomEngine), distribution(randomEngine)};
 	// 色設定
 	particle.color = {distColor(randomEngine), distColor(randomEngine), distColor(randomEngine), 1.0f};
-	
+	// ライフタイム設定
+	particle.lifeTime = distTime(randomEngine);
+	particle.currentTime = 0.0f;
+
 	return particle;
 }
 
@@ -1021,7 +1025,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// Depthの機能を有効化にする
 	depthStencilDesc.DepthEnable = true;
 	// 書き込み
-	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	// 比較関数はLessEqual。つまり、近ければ描画される
 	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	
@@ -1437,18 +1441,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// Resourceの作成
 	// インスタンスの数
-	const uint32_t kNumInstances = 10;
+	const uint32_t kNumMaxInstance = 10;
 	// Instancing用のTransformationMatrix用のリソースを作る。
-	Microsoft::WRL::ComPtr<ID3D12Resource> instancingResource = CreateBufferResource(device, sizeof(ParticleForGPU) * kNumInstances);
+	Microsoft::WRL::ComPtr<ID3D12Resource> instancingResource = CreateBufferResource(device, sizeof(ParticleForGPU) * kNumMaxInstance);
 	// データを書き込む
 	ParticleForGPU* instancingData = nullptr;
 	// 書き込むためのアドレスを取得
 	instancingResource->Map(0, nullptr, reinterpret_cast<void**>(&instancingData));
 	// 単位行列に書き込んでおく
-	for (uint32_t i = 0; i < kNumInstances; ++i) {
+	for (uint32_t i = 0; i < kNumMaxInstance; ++i) {
 		instancingData[i].World = MakeIdentity4x4();
 		instancingData[i].WVP = MakeIdentity4x4();
-		instancingData[i].color = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+		instancingData[i].color = Vector4(0.0f, 0.0f, 0.0f, 0.0f);
 
 	}
 
@@ -1459,7 +1463,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	instancingSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 	instancingSrvDesc.Buffer.FirstElement = 0;
 	instancingSrvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-	instancingSrvDesc.Buffer.NumElements = kNumInstances;
+	instancingSrvDesc.Buffer.NumElements = kNumMaxInstance;
 	instancingSrvDesc.Buffer.StructureByteStride = sizeof(ParticleForGPU);
 	D3D12_CPU_DESCRIPTOR_HANDLE instancingSrvHandleCPU = GetCPUDescriptorHandle(srvDescriptorHeap.Get(), descriptorSRV, 3);
 	D3D12_GPU_DESCRIPTOR_HANDLE instancingSrvHandleGPU = GetGPUDescriptorHandle(srvDescriptorHeap.Get(), descriptorSRV, 3);
@@ -1485,8 +1489,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 	// particleの作成
-	Particle particles[kNumInstances];
-	for (index = 0; index < kNumInstances; ++index) {
+	Particle particles[kNumMaxInstance];
+	for (index = 0; index < kNumMaxInstance; ++index) {
 		particles[index] = MakeNewParticle(randomEngine);
 
 
@@ -1538,7 +1542,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
 			// インスタンスの数だけループ
-			for (index = 0; index < kNumInstances; ++index) {
+			uint32_t numInstance = 0;
+			for (index = 0; index < kNumMaxInstance; ++index) {
+				if (particles[index].lifeTime <= particles[index].currentTime) {
+					continue;
+				}
 				// ワールド行列を計算
 				worldMatrix = MakeAffineMatrix(particles[index].transform.scale, particles[index].transform.rotate, particles[index].transform.translate);
 				// ワールドビュー射影行列を計算
@@ -1550,9 +1558,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 					// パーティクルの位置を更新
 					particles[index].transform.translate.x += particles[index].velocity.x * kDeltaTime;
 					particles[index].transform.translate.y += particles[index].velocity.y * kDeltaTime;
+					particles[index].currentTime += kDeltaTime;
 				}
+				instancingData[numInstance].WVP = worldViewProjectionMatrix;
+				instancingData[numInstance].World = worldMatrix;
+				instancingData[numInstance].color = particles[index].color;			
+				// 生きているパーティクルの数を1つカウントする
+				++numInstance;
 
-
+				alpha = 1.0f - (particles[index].currentTime / particles[index].lifeTime);
+				instancingData[numInstance - 1].color.w = alpha;
 			}
 
 
@@ -1675,7 +1690,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			
 			// 描画。(DrawCall/ドローコール)。3頂点で1つのインスタンス
-			commandList->DrawInstanced(UINT(modelData.vertices.size()), 10, 0, 0);
+			if (numInstance > 0) {
+				commandList->DrawInstanced(UINT(modelData.vertices.size()), numInstance, 0, 0);
+			}
 			// ======================================================================
 
 			////====================================================

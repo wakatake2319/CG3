@@ -25,24 +25,13 @@ struct Matrix3x3 {
 	float m[3][3];
 };
 
-//struct float32_t4 {
-//	float x;
-//	float y;
-//	float z;
-//	float w;
-//};
-
-
-
-//struct float32_t4x4 {
-//	float m[4][4];
-//};
-
 // パーティクル構造体
 struct Particle {
 	Transform transform;
 	Vector3 velocity;
 	Vector4 color;
+	float lifeTime;
+	float currentTime;
 };
 
 
@@ -52,3 +41,4 @@ struct ParticleForGPU {
 	Matrix4x4 World;
 	Vector4 color;
 };
+
