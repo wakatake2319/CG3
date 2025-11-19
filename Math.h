@@ -10,6 +10,7 @@ Matrix4x4 MakeIdentity4x4();
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rot, const Vector3& translate);
 Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip);
 Matrix4x4 MakeScaleMatrix(const Vector3& scale);
+Matrix4x4 MakeRotateYMatrix(float angle);
 Matrix4x4 MakeRotateZMatrix(float angle);
 Matrix4x4 MakeTranslateMatrix(const Vector3& translate);
 

@@ -305,6 +305,18 @@ Matrix4x4 MakeScaleMatrix(const Vector3& scale) {
 	return matrix;
 }
 
+Matrix4x4 MakeRotateYMatrix(float angle) {
+	Matrix4x4 result = {};
+	float radians = angle * (3.14159265359f / 180.0f); // Convert degrees to radians
+	result.m[0][0] = std::cos(radians);
+	result.m[0][2] = std::sin(radians);
+	result.m[1][1] = 1.0f;
+	result.m[2][0] = -std::sin(radians);
+	result.m[2][2] = std::cos(radians);
+	result.m[3][3] = 1.0f;
+	return result;
+}
+
 Matrix4x4 MakeRotateZMatrix(float angle) {
 	Matrix4x4 result = {};
 	float radians = angle * (3.14159265359f / 180.0f); // Convert degrees to radians
