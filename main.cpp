@@ -1010,7 +1010,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	D3D12_RASTERIZER_DESC rasterizerDesc{};
 	// 裏面(時計回り)を表示しない(D3D12_CULL_MODE_BACK)
 	// D3D12_CULL_MODE_NONEで両面表示
-	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
 	// 三角形の中を塗りつぶす
 	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
 
@@ -1324,7 +1324,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Transform cameraTransform{
 	    {1.0f, 1.0f, 1.0f },
         {std::numbers::pi_v<float> / 3.0f, std::numbers::pi_v<float>, 0.0f },
-        {0.0f, 0.0f, -5.0f}
+        {0.0f, 23.0f, 10.0f}
     };
 
 	// SpriteのTransform
@@ -1483,7 +1483,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// Δtを定義
 	const float kDeltaTime = 1.0f / 60.0f;
+
+	// パーティクル更新フラグ
 	bool particleUpdate = false;
+
+	// パーティクルをカメラに向けるフラグ
+	bool useBillbord = false;
 
 	// 乱数生成器の初期化
 	std::random_device seedGenerator;
@@ -1517,19 +1522,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::NewFrame();
 
 			Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, static_cast<float>(kwindowWidth) / static_cast<float>(kwindowHeight), 0.1f, 100.0f);
-
 			Matrix4x4 backToFrontMatrix = MakeRotateYMatrix(std::numbers::pi_v<float>);
+			Matrix4x4 billboardMatrix = MakeIdentity4x4();
 
-			
-			Matrix4x4 cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);		
-			Matrix4x4 billboardMatrix = Multiply(backToFrontMatrix, cameraMatrix);
-			billboardMatrix.m[3][0] = 0.0f;	// 平行移動成分はいらない
-			billboardMatrix.m[3][1] = 0.0f;
-			billboardMatrix.m[3][2] = 0.0f;
 
 			Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
+			Matrix4x4 cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);		
+			
 
+			if (useBillbord) {
+				billboardMatrix = Multiply(backToFrontMatrix, cameraMatrix);
+				billboardMatrix.m[3][0] = 0.0f; // 平行移動成分はいらない
+				billboardMatrix.m[3][1] = 0.0f;
+				billboardMatrix.m[3][2] = 0.0f;
 
+			}
+
+			
 			Matrix4x4 viewMatrix = Inverse(cameraMatrix);
 			Matrix4x4 projectiomMatrix = MakePerspectiveFovMatrix(0.45f, static_cast<float>(kwindowWidth) / static_cast<float>(kwindowHeight), 0.1f, 100.0f);
 			Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectiomMatrix));
@@ -1551,6 +1560,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			materialDataSprite->uvTransform = uvTransformMatrix;
 
 			Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
+
 
 			// インスタンスの数だけループ
 			uint32_t numInstance = 0;
@@ -1579,8 +1589,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 				alpha = 1.0f - (particles[index].currentTime / particles[index].lifeTime);
 				instancingData[numInstance - 1].color.w = alpha;
-			}
 
+				// ビルボード用の行列を計算
+				Matrix4x4 scaleMatrix = MakeScaleMatrix(particles[index].transform.scale);
+				Matrix4x4 rotateMatrix =
+				    MakeRotateXMatrix(particles[index].transform.rotate.x) * MakeRotateYMatrix(particles[index].transform.rotate.y) * MakeRotateZMatrix(particles[index].transform.rotate.z);
+				Matrix4x4 translateMatrix = MakeTranslateMatrix(particles[index].transform.translate);
+			}
 
 
 			ImGui::Begin("camera");
@@ -1610,7 +1625,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::End();
 
 			ImGui::Begin("particle");
+			// パーティクルの向き
+			ImGui::DragFloat3("particle.rotate.", &particles[0].transform.rotate.x, 0.01f, -10.0f, 10.0f);
 			ImGui::Checkbox("particleUpdate", &particleUpdate);
+			ImGui::Checkbox("useBillbord", &useBillbord);
 			ImGui::End();
 
 
