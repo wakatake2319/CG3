@@ -1066,45 +1066,45 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 
 
-	//// 球の頂点データを作成する
-	//// 経度分割1つ分の角度 φb
-	//const float kLonEvery = float(pi * 2.0f / float(kSubdivision));
-	//// 緯度分割1つ分の角度 Θb
-	//const float kLatEvery = float(pi / float(kSubdivision));
-	//
-	//
-	//// 緯度の方向に分割
-	//for (uint32_t latIndex = 0; latIndex < (kSubdivision+1); ++latIndex) {
-	//	// 現在の緯度
-	//	float lat = -float(pi / 2.0f) + kLatEvery * latIndex;
-	//	// 経度の方向に分割 0~2π
-	//	for (uint32_t lonIndex = 0; lonIndex < (kSubdivision+1); ++lonIndex) {
-	//		// uint32_t index = (latIndex * kSubdivision + lonIndex) * 6;
-	//		//  φ
-	//		float lon = lonIndex * kLonEvery;
-	//
-	//		VertexData vertA = {
-	//		    {
-	//			std::cosf(lat) * std::cosf(lon), 
-	//			std::sinf(lat), 
-	//			std::cosf(lat) * std::sinf(lon), 
-	//			1.0f
-	//			},
-    //            {
-	//			float(lonIndex) / float(kSubdivision),
-	//			1.0f - float(latIndex) / float(kSubdivision)
-	//			},
-    //            {
-    //             std::cosf(lat) * std::cosf(lon),
-    //             std::sinf(lat),
-    //             std::cosf(lat) * std::sinf(lon), 
-	//		    }
-    //        };
-	//
-	//		uint32_t start = (latIndex * (kSubdivision+1) + lonIndex);
-	//		vertexData[start] = vertA;
-	//	}
-	//}
+	// 球の頂点データを作成する
+	// 経度分割1つ分の角度 φb
+	const float kLonEvery = float(pi * 2.0f / float(kSubdivision));
+	// 緯度分割1つ分の角度 Θb
+	const float kLatEvery = float(pi / float(kSubdivision));
+	
+	
+	// 緯度の方向に分割
+	for (uint32_t latIndex = 0; latIndex < (kSubdivision+1); ++latIndex) {
+		// 現在の緯度
+		float lat = -float(pi / 2.0f) + kLatEvery * latIndex;
+		// 経度の方向に分割 0~2π
+		for (uint32_t lonIndex = 0; lonIndex < (kSubdivision+1); ++lonIndex) {
+			// uint32_t index = (latIndex * kSubdivision + lonIndex) * 6;
+			//  φ
+			float lon = lonIndex * kLonEvery;
+	
+			VertexData vertA = {
+			    {
+				std::cosf(lat) * std::cosf(lon), 
+				std::sinf(lat), 
+				std::cosf(lat) * std::sinf(lon), 
+				1.0f
+				},
+                {
+				float(lonIndex) / float(kSubdivision),
+				1.0f - float(latIndex) / float(kSubdivision)
+				},
+                {
+                 std::cosf(lat) * std::cosf(lon),
+                 std::sinf(lat),
+                 std::cosf(lat) * std::sinf(lon), 
+			    }
+            };
+	
+			//uint32_t start = (latIndex * (kSubdivision+1) + lonIndex);
+			//vertexData[start] = vertA;
+		}
+	}
 
 	// ============================
 	// Sprite
