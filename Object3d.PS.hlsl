@@ -41,22 +41,26 @@ PixelShaderOutput main(VertexShaderOutput input)
     float32_t4 textureColor = gTexture.Sample(gSampler,transformedUV.xy);
     if (gMaterial.enableLighting != 0)
     {
-        float32_t3 toEye = normalize(gCamera.worldPosition - input.worldPosition);
         
         float3 N = normalize(input.normal);
         float3 L = normalize(-gDirectionalLight.direction);
-        float32_t3 reflectLight = reflect(-L, N);
-        float RdotE = dot(reflectLight, toEye);
+        //float32_t3 reflectLight = reflect(L, N);
+        //float RdotE = dot(reflectLight, toEye);
         //float specularPow = pow(saturate(RdotE), 70);
-        float specularPow = pow(saturate(RdotE), gMaterial.shininess);
+        //float specularPow = pow(saturate(RdotE), gMaterial.shininess);
         
-        float NdotL = dot(normalize(input.normal), -L);
+        float NdotL = saturate(dot(N, L));
         float cos = pow(NdotL * 0.5f + 0.5f, 2.0f);
 
         // 拡散反射
-        float32_t3 diffuse = gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb * cos * gDirectionalLight.intensity;
+        float32_t3 diffuse = gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb * NdotL * gDirectionalLight.intensity;
     
         // 鏡面反射
+        float32_t3 halfVector = normalize(L + toEye);
+        float NDotH = dot(N,halfVector);
+        float specularPow = pow(saturate(NDotH), gMaterial.shininess);
+        
+        
         float32_t3 specular = gDirectionalLight.color.rgb * gDirectionalLight.intensity * specularPow * float32_t3(1.0f, 1.0f, 1.0f);
         
         // 拡散反射と鏡面反射を合成

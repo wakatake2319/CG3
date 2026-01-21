@@ -60,6 +60,7 @@ struct Material {
 	float paddding[3];
 	Matrix4x4 uvTransform;
 	float shininess;
+	float padding2[3];
 };
 
 struct TransformationMatrix {
@@ -86,6 +87,7 @@ struct ModelData {
 
 struct CameraForGPU {
 	Vector3 worldPosition;
+	float padding1; // パディング
 };
 
 double pi = 3.14;
@@ -1270,9 +1272,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// transformの変数を作る
 	Transform transform{
-	    {1.0f, 1.0f, 1.0f},
-        {0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f}
+	    {1.0f, 1.0f, 1.0f}, // scale
+	    {0.0f, 0.0f, 0.0f}, // rotation
+	    {0.0f, 0.0f, 3.0f}  // position
     };
 	Transform cameraTransform{
 	    {1.0f, 1.0f, 1.0f },
@@ -1378,7 +1380,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	materialDataSphere->color = {1.0f, 1.0f, 1.0f, 1.0f};
 	materialDataSphere->uvTransform = MakeIdentity4x4();
 	materialDataSphere->shininess = 70.0f;
-
+	//materialDataSphere->direction = {0.0f, -1.0f, 0.0f};
+	//materialDataSphere->intensity = 1.0f;
 
 
 	// スプライト用マテリアル（ライティング無効）
@@ -1404,6 +1407,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 書き込むためのアドレス取得
 	cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
 
+	assert(sizeof(Material) % 16 == 0);
+	assert(sizeof(DirectionalLight) % 16 == 0);
+	assert(sizeof(CameraForGPU) % 16 == 0);
 
 	// ==============================
 	// ゲームループ
