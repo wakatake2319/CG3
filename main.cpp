@@ -1377,6 +1377,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	materialDataSphere->enableLighting = true;
 	materialDataSphere->color = {1.0f, 1.0f, 1.0f, 1.0f};
 	materialDataSphere->uvTransform = MakeIdentity4x4();
+	materialDataSphere->shininess = 70.0f;
+
 
 
 	// スプライト用マテリアル（ライティング無効）
