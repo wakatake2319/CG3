@@ -340,3 +340,13 @@ Vector3 Normalize(const Vector3& v) {
 	}
 	return Vector3{v.x / length, v.y / length, v.z / length};
 }
+
+Matrix4x4 Transpose(const Matrix4x4& m) {
+	Matrix4x4 result{};
+	for (int row = 0; row < 4; ++row) {
+		for (int col = 0; col < 4; ++col) {
+			result.m[row][col] = m.m[col][row];
+		}
+	}
+	return result;
+}
