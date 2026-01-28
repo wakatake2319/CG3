@@ -1067,11 +1067,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	uint32_t vertexCount = (kSubdivision + 1) * (kSubdivision + 1);
 
-
-
+    // モデルデータを読み込む
+	ModelData modelData_ = LoadObjFile("resources", "terrain.obj");
 
 	// 頂点にリソースを作る
-	Microsoft::WRL::ComPtr<ID3D12Resource> vertexResource = CreateBufferResource(device, sizeof(VertexData) * vertexCount);
+	Microsoft::WRL::ComPtr<ID3D12Resource> vertexResource = CreateBufferResource(device, sizeof(VertexData) * modelData_.vertices.size());
 	assert(SUCCEEDED(hr));
 
 	// 頂点バッファビューを作成する
@@ -1079,7 +1079,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// リソースの先頭のアドレスから使う
 	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
 	// 使用するリソースのサイズは頂点3つ分のサイズ
-	vertexBufferView.SizeInBytes = sizeof(VertexData) * vertexCount;
+	vertexBufferView.SizeInBytes = sizeof(VertexData) * modelData_.vertices.size();
 	// 1頂点当たりのサイズ
 	vertexBufferView.StrideInBytes = sizeof(VertexData);
 
@@ -1087,6 +1087,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	VertexData* vertexData = nullptr;
 	// 書き込むためのアドレス取得
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
+	std::memcpy(vertexData, modelData_.vertices.data(), sizeof(VertexData) * modelData_.vertices.size());
 
 
 	// 球の頂点データを作成する
@@ -1436,9 +1437,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	assert(sizeof(PointLight) % 16 == 0);
 	assert(sizeof(CameraForGPU) % 16 == 0);
 
-    // モデルデータを読み込む
-	ModelData modelData_ = LoadObjFile("resources", "terrain.obj");
-
 	// ==============================
 	// ゲームループ
 	// ==============================
@@ -1606,6 +1604,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			
 			// 描画。(DrawCall/ドローコール)。3頂点で1つのインスタンス
 			commandList->DrawIndexedInstanced(indexCount, 1, 0, 0, 0);
+			// ======================================================================
+			
+			// ======================================================================
+			// オブジェクト描画
+			commandList->DrawInstanced(UINT(modelData_.vertices.size()), 1, 0, 0);
 			
 			// ======================================================================
 
