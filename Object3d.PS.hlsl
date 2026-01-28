@@ -25,6 +25,14 @@ struct DirectionalLight
     float intensity;
 };
 
+struct PointLight
+{
+    float32_t4 color;
+    float32_t3 posirion;
+    float intensity;
+ 
+};
+
 struct Camera
 {
     float32_t3 worldPosition;
@@ -32,6 +40,8 @@ struct Camera
 
 ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);
 ConstantBuffer<Camera> gCamera : register(b2);
+ConstantBuffer<PointLight> gPointLight : register(b3);
+
 
 
 PixelShaderOutput main(VertexShaderOutput input)
@@ -45,6 +55,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         
         float3 N = normalize(input.normal);
         float3 L = normalize(-gDirectionalLight.direction);
+        float32_t3 PointLightDirection = normalize(input.worldPosition - gPointLight.posirion);
         //float32_t3 reflectLight = reflect(L, N);
         //float RdotE = dot(reflectLight, toEye);
         //float specularPow = pow(saturate(RdotE), 70);
@@ -55,7 +66,9 @@ PixelShaderOutput main(VertexShaderOutput input)
 
         // 拡散反射
         float32_t3 diffuse = gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb * cos * gDirectionalLight.intensity;
-    
+        float32_t3 pointLightDiffuse = gMaterial.color.rgb * textureColor.rgb * gPointLight.color.rgb * saturate(dot(N, -PointLightDirection)) * gPointLight.intensity;
+        
+        
         // 鏡面反射
         float32_t3 halfVector = normalize(L + toEye);
         float NDotH = dot(N,halfVector);
@@ -63,9 +76,10 @@ PixelShaderOutput main(VertexShaderOutput input)
         
         
         float32_t3 specular = gDirectionalLight.color.rgb * gDirectionalLight.intensity * specularPow * float32_t3(1.0f, 1.0f, 1.0f);
+        float32_t3 pointLightSpecular = gPointLight.color.rgb * gPointLight.intensity * specularPow * float32_t3(1.0f, 1.0f, 1.0f);
         
         // 拡散反射と鏡面反射を合成
-        output.color.rgb = diffuse + specular;
+        output.color.rgb = diffuse + specular + pointLightDiffuse + pointLightSpecular;
         
         output.color.a = gMaterial.color.a * textureColor.a;
 

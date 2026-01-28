@@ -75,6 +75,13 @@ struct DirectionalLight {
 	float intensity;   // 光の強さ
 };
 
+struct PointLight {
+	Vector4 color;       // 光の色
+	Vector3 position;    // 光の位置
+	float intensity;     // 光の強さ
+	//Vector3 attenuation; // 減衰係数
+};
+
 // マテリアルデータ構造体
 struct MaterialData {
 	std::string textureFilePath;
@@ -842,7 +849,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	descriptorRange[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	// RootParameter作成。複数設定できるので配列。長さ2の配列
-	D3D12_ROOT_PARAMETER rootParameters[5] = {};
+	D3D12_ROOT_PARAMETER rootParameters[6] = {};
 	// CBVを使う
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	// PixelShaderで使う
@@ -879,6 +886,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	// レジスタ番号2を使う
 	rootParameters[4].Descriptor.ShaderRegister = 2;
+
+	// ライトの情報を送る
+	// CBVを使う
+	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	// PixelShaderで使う
+	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	// レジスタ番号3を使う
+	rootParameters[5].Descriptor.ShaderRegister = 3;
 
 
 	// Samplerの設定
@@ -1401,6 +1416,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	directionalLightData->direction = {0.0f, -1.0f, 0.0f};
 	directionalLightData->intensity = 1.0f;
 
+	// PointLight用のマテリアルを作成
+	Microsoft::WRL::ComPtr<ID3D12Resource> pointLight = CreateBufferResource(device, sizeof(PointLight));
+	PointLight* pointLightData = nullptr;
+	pointLight->Map(0, nullptr, reinterpret_cast<void**>(&pointLightData));
+	pointLightData->color = {1.0f, 1.0f, 1.0f, 1.0f};
+	pointLightData->position = {0.0f, 3.0f, 0.0f};
+	pointLightData->intensity = 1.0f;
+
 	// カメラ用のリソースを作成
 	Microsoft::WRL::ComPtr<ID3D12Resource> cameraResource = CreateBufferResource(device, sizeof(CameraForGPU));
 	// マテリアルデータに書き込む
@@ -1410,7 +1433,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	assert(sizeof(Material) % 16 == 0);
 	assert(sizeof(DirectionalLight) % 16 == 0);
+	assert(sizeof(PointLight) % 16 == 0);
 	assert(sizeof(CameraForGPU) % 16 == 0);
+
+    // モデルデータを読み込む
+	ModelData modelData_ = LoadObjFile("resources", "terrain.obj");
 
 	// ==============================
 	// ゲームループ
@@ -1563,6 +1590,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 			// lighting用のCBufferの場所を設定
 			commandList->SetGraphicsRootConstantBufferView(3, directionalLight->GetGPUVirtualAddress());
+			// pointLight用のCBufferの場所を設定
+			commandList->SetGraphicsRootConstantBufferView(5, pointLight->GetGPUVirtualAddress());
 			// wvp用のCBufferの場所を設定
 			commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 			// SRVのDescriptorTableの戦闘を設定。2はrootParameters[2]である。
