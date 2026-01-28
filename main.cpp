@@ -1321,11 +1321,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	    device.Get(), swapChainDesc.BufferCount, rtvDesc.Format, srvDescriptorHeap.Get(), srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
 	    srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-		// 2枚目のTexture
+	// 2枚目のTexture
 	DirectX::ScratchImage mipImages2 = LoadTexture("resources/monsterBall.png");
 	const DirectX::TexMetadata& metadata2 = mipImages2.GetMetadata();
 	Microsoft::WRL::ComPtr <ID3D12Resource> textureResource2 = CreateTextureResource(device, metadata2);
 	Microsoft::WRL::ComPtr<ID3D12Resource> val2 = UploadTextureData(textureResource2, mipImages2, device.Get(), commandList.Get());
+
+	// 3枚目のTexture
+	DirectX::ScratchImage mipImages3 = LoadTexture(modelData_.material.textureFilePath);
+	//const DirectX::TexMetadata& metadata3 = mipImages3.GetMetadata();
+	//Microsoft::WRL::ComPtr<ID3D12Resource> textureResource3 = CreateTextureResource(device, metadata3);
+	//Microsoft::WRL::ComPtr<ID3D12Resource> val3 = UploadTextureData(textureResource3, mipImages3, device.Get(), commandList.Get());
 
 
 	// metDataを基にSRVの設定
@@ -1592,7 +1598,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->SetGraphicsRootConstantBufferView(5, pointLight->GetGPUVirtualAddress());
 			// wvp用のCBufferの場所を設定
 			commandList->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
-			// SRVのDescriptorTableの戦闘を設定。2はrootParameters[2]である。
+			// SRVのDescriptorTableの先頭を設定。2はrootParameters[2]である。
 			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU);
 			// MonsterBall
 			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU2);
