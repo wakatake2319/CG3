@@ -1089,7 +1089,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
 	std::memcpy(vertexData, modelData_.vertices.data(), sizeof(VertexData) * modelData_.vertices.size());
 
-
 	// 球の頂点データを作成する
 	// 経度分割1つ分の角度 φb
 	const float kLonEvery = float(pi * 2.0f / float(kSubdivision));
@@ -1329,9 +1328,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// 3枚目のTexture
 	DirectX::ScratchImage mipImages3 = LoadTexture(modelData_.material.textureFilePath);
-	//const DirectX::TexMetadata& metadata3 = mipImages3.GetMetadata();
-	//Microsoft::WRL::ComPtr<ID3D12Resource> textureResource3 = CreateTextureResource(device, metadata3);
-	//Microsoft::WRL::ComPtr<ID3D12Resource> val3 = UploadTextureData(textureResource3, mipImages3, device.Get(), commandList.Get());
+	const DirectX::TexMetadata& metadata3 = mipImages3.GetMetadata();
+	Microsoft::WRL::ComPtr<ID3D12Resource> textureResource3 = CreateTextureResource(device, metadata3);
+	Microsoft::WRL::ComPtr<ID3D12Resource> val3 = UploadTextureData(textureResource3, mipImages3, device.Get(), commandList.Get());
 
 
 	// metDataを基にSRVの設定
@@ -1342,12 +1341,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	srvDesc2.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc2.Texture2D.MipLevels = UINT(metadata2.mipLevels);
 
+	// metDataを基にSRVの設定
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc3{};
+	srvDesc3.Format = metadata3.format;
+	srvDesc3.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	// 2Dテクスチャ
+	srvDesc3.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc3.Texture2D.MipLevels = UINT(metadata3.mipLevels);
+
 	
 	D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU2 = GetCPUDescriptorHandle(srvDescriptorHeap.Get(), descriptorSRV, 2);
 	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU2 = GetGPUDescriptorHandle(srvDescriptorHeap.Get(), descriptorSRV, 2);
 
 	// SRVの生成
 	device->CreateShaderResourceView(textureResource2.Get(), &srvDesc2, textureSrvHandleCPU2);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE textureSrvHandleCPU3 = GetCPUDescriptorHandle(srvDescriptorHeap.Get(), descriptorSRV, 3);
+	D3D12_GPU_DESCRIPTOR_HANDLE textureSrvHandleGPU3 = GetGPUDescriptorHandle(srvDescriptorHeap.Get(), descriptorSRV, 3);
+
+	// SRVの生成
+	device->CreateShaderResourceView(textureResource3.Get(), &srvDesc3, textureSrvHandleCPU3);
 
 
 
@@ -1614,7 +1627,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			
 			// ======================================================================
 			// オブジェクト描画
+			commandList->SetGraphicsRootDescriptorTable(2, textureSrvHandleGPU3);
+
+
 			commandList->DrawInstanced(UINT(modelData_.vertices.size()), 1, 0, 0);
+
 			
 			// ======================================================================
 
